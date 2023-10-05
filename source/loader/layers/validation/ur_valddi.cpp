@@ -3949,6 +3949,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueKernelLaunch(
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
         }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
+        }
     }
 
     ur_result_t result = pfnKernelLaunch(
@@ -3991,6 +3999,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueEventsWait(
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
         }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
+        }
     }
 
     ur_result_t result =
@@ -4032,6 +4048,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueEventsWaitWithBarrier(
 
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+        }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
         }
     }
 
@@ -4085,6 +4109,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueMemBufferRead(
 
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+        }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
         }
     }
 
@@ -4141,6 +4173,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueMemBufferWrite(
 
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+        }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
         }
     }
 
@@ -4247,6 +4287,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueMemBufferReadRect(
                     (hostRowPitch != 0 ? hostRowPitch : region.width) !=
                 0) {
             return UR_RESULT_ERROR_INVALID_SIZE;
+        }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
         }
     }
 
@@ -4359,6 +4407,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueMemBufferWriteRect(
                 0) {
             return UR_RESULT_ERROR_INVALID_SIZE;
         }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
+        }
     }
 
     ur_result_t result = pfnMemBufferWriteRect(
@@ -4413,6 +4469,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueMemBufferCopy(
 
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+        }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
         }
     }
 
@@ -4513,6 +4577,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueMemBufferCopyRect(
                 0) {
             return UR_RESULT_ERROR_INVALID_SIZE;
         }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
+        }
     }
 
     ur_result_t result = pfnMemBufferCopyRect(
@@ -4567,6 +4639,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueMemBufferFill(
 
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+        }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
         }
     }
 
@@ -4626,6 +4706,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueMemImageRead(
 
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+        }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
         }
     }
 
@@ -4687,6 +4775,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueMemImageWrite(
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
         }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
+        }
     }
 
     ur_result_t result = pfnMemImageWrite(
@@ -4746,6 +4842,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueMemImageCopy(
 
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+        }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
         }
     }
 
@@ -4807,6 +4911,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueMemBufferMap(
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
         }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
+        }
     }
 
     ur_result_t result = pfnMemBufferMap(hQueue, hBuffer, blockingMap, mapFlags,
@@ -4858,6 +4970,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueMemUnmap(
 
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+        }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
         }
     }
 
@@ -4932,6 +5052,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueUSMFill(
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
         }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
+        }
     }
 
     ur_result_t result =
@@ -4989,6 +5117,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueUSMMemcpy(
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
         }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
+        }
     }
 
     ur_result_t result =
@@ -5044,6 +5180,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueUSMPrefetch(
 
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+        }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
         }
     }
 
@@ -5178,6 +5322,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueUSMFill2D(
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
         }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
+        }
     }
 
     ur_result_t result =
@@ -5256,6 +5408,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueUSMMemcpy2D(
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
         }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
+        }
     }
 
     ur_result_t result =
@@ -5319,6 +5479,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueDeviceGlobalVariableWrite(
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
         }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
+        }
     }
 
     ur_result_t result = pfnDeviceGlobalVariableWrite(
@@ -5381,6 +5549,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueDeviceGlobalVariableRead(
 
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+        }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
         }
     }
 
@@ -5447,6 +5623,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueReadHostPipe(
 
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+        }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
         }
     }
 
@@ -5517,6 +5701,14 @@ __urdlllocal ur_result_t UR_APICALL urEnqueueWriteHostPipe(
 
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+        }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
         }
     }
 
@@ -5935,6 +6127,14 @@ __urdlllocal ur_result_t UR_APICALL urBindlessImagesImageCopyExp(
         if (pImageDesc && UR_MEM_TYPE_IMAGE1D_BUFFER < pImageDesc->type) {
             return UR_RESULT_ERROR_INVALID_IMAGE_FORMAT_DESCRIPTOR;
         }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
+        }
     }
 
     ur_result_t result = pfnImageCopyExp(
@@ -6301,6 +6501,14 @@ __urdlllocal ur_result_t UR_APICALL urBindlessImagesWaitExternalSemaphoreExp(
         if (NULL == hSemaphore) {
             return UR_RESULT_ERROR_INVALID_NULL_HANDLE;
         }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
+        }
     }
 
     ur_result_t result = pfnWaitExternalSemaphoreExp(
@@ -6340,6 +6548,14 @@ __urdlllocal ur_result_t UR_APICALL urBindlessImagesSignalExternalSemaphoreExp(
 
         if (NULL == hSemaphore) {
             return UR_RESULT_ERROR_INVALID_NULL_HANDLE;
+        }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
         }
     }
 
@@ -6971,6 +7187,14 @@ __urdlllocal ur_result_t UR_APICALL urCommandBufferEnqueueExp(
 
         if (phEventWaitList != NULL && numEventsInWaitList == 0) {
             return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+        }
+
+        if (phEventWaitList != NULL && numEventsInWaitList > 0) {
+            for (uint i = 0; i < numEventsInWaitList; ++i) {
+                if (*(phEventWaitList + i) == NULL) {
+                    return UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST;
+                }
+            }
         }
     }
 
