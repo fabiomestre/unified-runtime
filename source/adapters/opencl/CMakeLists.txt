@@ -55,21 +55,23 @@ message(STATUS "OpenCL_INCLUDE_DIR: ${OpenCL_INCLUDE_DIR}")
 # Define all symbols up to OpenCL 3.0.
 target_compile_definitions(ur_adapter_opencl PRIVATE CL_TARGET_OPENCL_VERSION=300 CL_USE_DEPRECATED_OPENCL_1_2_APIS)
 
-# Make imported library global to use it within the project.
-add_library(OpenCL-ICD SHARED IMPORTED GLOBAL)
+if (NOT TARGET OpenCL-ICD)
+    # Make imported library global to use it within the project.
+    add_library(OpenCL-ICD SHARED IMPORTED GLOBAL)
 
-if (WIN32)
-    set_target_properties(
-            OpenCL-ICD PROPERTIES
-            IMPORTED_IMPLIB               ${OpenCL_LIBRARY}
-            INTERFACE_INCLUDE_DIRECTORIES ${OpenCL_INCLUDE_DIR}
-    )
-else()
-    set_target_properties(
-            OpenCL-ICD PROPERTIES
-            IMPORTED_LOCATION             ${OpenCL_LIBRARY}
-            INTERFACE_INCLUDE_DIRECTORIES ${OpenCL_INCLUDE_DIR}
-    )
+    if (WIN32)
+        set_target_properties(
+                OpenCL-ICD PROPERTIES
+                IMPORTED_IMPLIB               ${OpenCL_LIBRARY}
+                INTERFACE_INCLUDE_DIRECTORIES ${OpenCL_INCLUDE_DIR}
+        )
+    else()
+        set_target_properties(
+                OpenCL-ICD PROPERTIES
+                IMPORTED_LOCATION             ${OpenCL_LIBRARY}
+                INTERFACE_INCLUDE_DIRECTORIES ${OpenCL_INCLUDE_DIR}
+        )
+    endif()
 endif()
 
 target_link_libraries(${TARGET_NAME} PRIVATE
