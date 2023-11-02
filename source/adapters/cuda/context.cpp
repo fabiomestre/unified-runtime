@@ -106,7 +106,7 @@ UR_APIEXPORT ur_result_t UR_APICALL urContextGetInfo(
     return ReturnValue(true);
   case UR_CONTEXT_INFO_USM_FILL2D_SUPPORT:
     // 2D USM operations currently not supported.
-    return ReturnValue(false);
+    return ReturnValue(true);
 
   default:
     break;
