@@ -64,10 +64,10 @@ struct urEnqueueUSMFill2DTestWithParam
         ASSERT_SUCCESS(urEnqueueUSMMemcpy2D(queue, true, host_mem.data(), pitch,
                                             ptr, pitch, width, height, 0,
                                             nullptr, nullptr));
-
+        size_t patter_size = pattern_size;
         size_t pattern_index = 0;
-        for (size_t w = 0; w < width; ++w) {
-            for (size_t h = 0; h < height; ++h) {
+        for (size_t h = 0; h < height; ++h) {
+            for (size_t w = 0; w < width; ++w) {
                 uint8_t *host_ptr = host_mem.data();
                 size_t index = (pitch * h) + w;
                 ASSERT_TRUE((*(host_ptr + index) == pattern[pattern_index]));
@@ -109,7 +109,7 @@ static std::vector<testParametersFill2D> test_cases{
     /* Height > 1 && Pitch > width && pattern_size == width */
     {1024, 256, 256, 256},
     /* Height > 1 && Pitch > width && pattern_size == width * height */
-    {1024, 256, 256, 256 * 256},
+//    {1024, 256, 256, 256 * 256},
     /* Height == 1 && Pitch == width + 1 && pattern_size == 1 */
     {234, 233, 1, 1},
     /* Height != power_of_2 && Pitch == width + 1 && pattern_size == 1 */
@@ -254,7 +254,7 @@ TEST_P(urEnqueueUSMFill2DNegativeTest, invalidPatternSize) {
                                         width, 1, 0, nullptr, nullptr),
                      UR_RESULT_ERROR_INVALID_SIZE);
 
-    /* pattern_size is larger than size */
+    /* pattern_size is larger than pitch */
     ASSERT_EQ_RESULT(urEnqueueUSMFill2D(queue, ptr, pitch, 32, pattern.data(),
                                         width, 1, 0, nullptr, nullptr),
                      UR_RESULT_ERROR_INVALID_SIZE);

@@ -771,6 +771,45 @@ ur_result_t commonMemSetLargePattern(CUstream Stream, uint32_t PatternSize,
   return UR_RESULT_SUCCESS;
 }
 
+ur_result_t commonMemSetLargePattern2D(CUstream Stream, size_t pitch,
+                                       size_t PatternSize, const void *pPattern,
+                                       size_t Width, size_t Height,
+                                       CUdeviceptr Ptr) {
+
+  const auto Num4ByteChunks = PatternSize / sizeof(uint32_t);
+  const auto Remainder = PatternSize % sizeof(uint32_t);
+  const auto Num2ByteChunks = Remainder % sizeof(uint16_t);
+  const auto Num1ByteChunks = Remainder - Num2ByteChunks * sizeof(uint16_t);
+  const auto PatternsPerRow = Width / PatternSize; // Guaranteed to be divisible
+
+  for (auto Repeats = 0u; Repeats < PatternsPerRow; ++Repeats) {
+    for (auto Step = 0u; Step < Num4ByteChunks; ++Step) {
+      auto Chunk = static_cast<const uint32_t *>(pPattern)[Step];
+      cuMemsetD2D32Async(Ptr + Repeats * PatternSize + Step * sizeof(uint32_t),
+                         pitch, Chunk, 1, Height, Stream);
+    }
+
+    if (Num2ByteChunks == 1) {
+      auto Chunk =
+          static_cast<const uint16_t *>(pPattern)[Num4ByteChunks * 2 + 1];
+      cuMemsetD2D16Async(Ptr + Repeats * PatternSize +
+                             Num4ByteChunks * sizeof(uint32_t),
+                         pitch, Chunk, 1, Height, Stream);
+    }
+
+    if (Num1ByteChunks == 1) {
+      auto Chunk = static_cast<const uint8_t *>(
+          pPattern)[Num4ByteChunks * 4 + Num2ByteChunks * 2 + 1];
+      cuMemsetD2D8Async(Ptr + Repeats * PatternSize +
+                            Num4ByteChunks * sizeof(uint32_t) +
+                            Num2ByteChunks * sizeof(uint16_t),
+                        pitch, Chunk, 1, Height, Stream);
+    }
+  }
+
+  return UR_RESULT_SUCCESS;
+}
+
 UR_APIEXPORT ur_result_t UR_APICALL urEnqueueMemBufferFill(
     ur_queue_handle_t hQueue, ur_mem_handle_t hBuffer, const void *pPattern,
     size_t patternSize, size_t offset, size_t size,
@@ -1491,9 +1530,66 @@ urEnqueueUSMAdvise(ur_queue_handle_t hQueue, const void *pMem, size_t size,
 // TODO: Implement this. Remember to return true for
 //       PI_EXT_ONEAPI_CONTEXT_INFO_USM_FILL2D_SUPPORT when it is implemented.
 UR_APIEXPORT ur_result_t UR_APICALL urEnqueueUSMFill2D(
-    ur_queue_handle_t, void *, size_t, size_t, const void *, size_t, size_t,
-    uint32_t, const ur_event_handle_t *, ur_event_handle_t *) {
-  return UR_RESULT_ERROR_UNSUPPORTED_FEATURE;
+    ur_queue_handle_t hQueue, void *pMem, size_t pitch, size_t patternSize,
+    const void *pPattern, size_t width, size_t height,
+    uint32_t numEventsInWaitList, const ur_event_handle_t *phEventWaitList,
+    ur_event_handle_t *phEvent) {
+
+  ur_result_t Result = UR_RESULT_SUCCESS;
+  std::unique_ptr<ur_event_handle_t_> EventPtr{nullptr};
+
+  try {
+    ScopedContext Active(hQueue->getContext());
+    uint32_t StreamToken;
+    ur_stream_guard_ Guard;
+    CUstream CuStream = hQueue->getNextComputeStream(
+        numEventsInWaitList, phEventWaitList, Guard, &StreamToken);
+    UR_CHECK_ERROR(enqueueEventsWait(hQueue, CuStream, numEventsInWaitList,
+                                     phEventWaitList));
+    if (phEvent) {
+      EventPtr =
+          std::unique_ptr<ur_event_handle_t_>(ur_event_handle_t_::makeNative(
+              UR_COMMAND_USM_FILL, hQueue, CuStream, StreamToken));
+      UR_CHECK_ERROR(EventPtr->start());
+    }
+
+    switch (patternSize) {
+    case 1: {
+      UR_CHECK_ERROR(
+          cuMemsetD2D8Async(reinterpret_cast<CUdeviceptr>(pMem), pitch,
+                            *static_cast<const unsigned char *>(pPattern),
+                            width / patternSize, height, CuStream));
+      break;
+    }
+    case 2: {
+      UR_CHECK_ERROR(
+          cuMemsetD2D16Async(reinterpret_cast<CUdeviceptr>(pMem), pitch,
+                             *static_cast<const unsigned short *>(pPattern),
+                             width / patternSize, height, CuStream));
+      break;
+    }
+    case 4: {
+      UR_CHECK_ERROR(
+          cuMemsetD2D32Async(reinterpret_cast<CUdeviceptr>(pMem), pitch,
+                             *static_cast<const unsigned int *>(pPattern),
+                             width / patternSize, height, CuStream));
+      break;
+    }
+    default: {
+      UR_CHECK_ERROR(commonMemSetLargePattern2D(
+          CuStream, pitch, patternSize, pPattern, width, height,
+          reinterpret_cast<CUdeviceptr>(pMem)));
+    }
+    }
+
+    if (phEvent) {
+      UR_CHECK_ERROR(EventPtr->record());
+      *phEvent = EventPtr.release();
+    }
+  } catch (ur_result_t Err) {
+    Result = Err;
+  }
+  return Result;
 }
 
 UR_APIEXPORT ur_result_t UR_APICALL urEnqueueUSMMemcpy2D(
