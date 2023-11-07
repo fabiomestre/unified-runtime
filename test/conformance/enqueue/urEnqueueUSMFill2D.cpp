@@ -69,7 +69,10 @@ struct urEnqueueUSMFill2DTestWithParam
             for (size_t w = 0; w < width; ++w) {
                 uint8_t *host_ptr = host_mem.data();
                 size_t index = (pitch * h) + w;
-                ASSERT_TRUE((*(host_ptr + index) == pattern[pattern_index]));
+                if ((*(host_ptr + index) != pattern[pattern_index])) {
+                    ASSERT_TRUE(
+                        (*(host_ptr + index) == pattern[pattern_index]));
+                }
 
                 ++pattern_index;
                 if (pattern_index % pattern.size() == 0) {
@@ -108,7 +111,7 @@ static std::vector<testParametersFill2D> test_cases{
     /* Height > 1 && Pitch > width && pattern_size == width */
     {1024, 256, 256, 256},
     /* Height > 1 && Pitch > width && pattern_size == width * height */
-    //    {1024, 256, 256, 256 * 256},
+//        {1024, 256, 256, 256 * 256},
     /* Height == 1 && Pitch == width + 1 && pattern_size == 1 */
     {234, 233, 1, 1},
     /* Height != power_of_2 && Pitch == width + 1 && pattern_size == 1 */

@@ -771,41 +771,103 @@ ur_result_t commonMemSetLargePattern(CUstream Stream, uint32_t PatternSize,
   return UR_RESULT_SUCCESS;
 }
 
-ur_result_t commonMemSetLargePattern2D(CUstream Stream, size_t pitch,
-                                       size_t PatternSize, const void *pPattern,
-                                       size_t Width, size_t Height,
-                                       CUdeviceptr Ptr) {
+// ur_result_t commonMemSetLargePattern2D(CUstream Stream, size_t pitch,
+//                                        size_t PatternSize, const void
+//                                        *pPattern, size_t Width, size_t
+//                                        Height, CUdeviceptr Ptr) {
+//
+//   const auto Num4ByteChunks = PatternSize / sizeof(uint32_t);
+//   const auto Remainder = PatternSize % sizeof(uint32_t);
+//   const auto Num2ByteChunks = Remainder % sizeof(uint16_t);
+//   const auto Num1ByteChunks = Remainder - Num2ByteChunks * sizeof(uint16_t);
+//   const auto PatternsPerRow = Width / PatternSize; // Guaranteed to be divisible
+//
+//   for (auto Repeats = 0u; Repeats < PatternsPerRow; ++Repeats) {
+//     for (auto Step = 0u; Step < Num4ByteChunks; ++Step) {
+//       auto Chunk = static_cast<const uint32_t *>(pPattern)[Step];
+//       cuMemsetD2D32Async(Ptr + Repeats * PatternSize + Step *
+//       sizeof(uint32_t),
+//                          pitch, Chunk, 1, Height, Stream);
+//     }
+//
+//     if (Num2ByteChunks == 1) {
+//       auto Chunk =
+//           static_cast<const uint16_t *>(pPattern)[Num4ByteChunks * 2 + 1];
+//       cuMemsetD2D16Async(Ptr + Repeats * PatternSize +
+//                              Num4ByteChunks * sizeof(uint32_t),
+//                          pitch, Chunk, 1, Height, Stream);
+//     }
+//
+//     if (Num1ByteChunks == 1) {
+//       auto Chunk = static_cast<const uint8_t *>(
+//           pPattern)[Num4ByteChunks * 4 + Num2ByteChunks * 2 + 1];
+//       cuMemsetD2D8Async(Ptr + Repeats * PatternSize +
+//                             Num4ByteChunks * sizeof(uint32_t) +
+//                             Num2ByteChunks * sizeof(uint16_t),
+//                         pitch, Chunk, 1, Height, Stream);
+//     }
+//   }
+//
+//   return UR_RESULT_SUCCESS;
+// }
 
-  const auto Num4ByteChunks = PatternSize / sizeof(uint32_t);
-  const auto Remainder = PatternSize % sizeof(uint32_t);
-  const auto Num2ByteChunks = Remainder % sizeof(uint16_t);
-  const auto Num1ByteChunks = Remainder - Num2ByteChunks * sizeof(uint16_t);
-  const auto PatternsPerRow = Width / PatternSize; // Guaranteed to be divisible
+ur_result_t commonMemSetLargePattern2D(ur_queue_handle_t hQueue, void *pMem,
+                                       size_t pitch, size_t PatternSize,
+                                       const void *pPattern, size_t Width,
+                                       size_t Height, CUdeviceptr Ptr) {
 
-  for (auto Repeats = 0u; Repeats < PatternsPerRow; ++Repeats) {
-    for (auto Step = 0u; Step < Num4ByteChunks; ++Step) {
-      auto Chunk = static_cast<const uint32_t *>(pPattern)[Step];
-      cuMemsetD2D32Async(Ptr + Repeats * PatternSize + Step * sizeof(uint32_t),
-                         pitch, Chunk, 1, Height, Stream);
-    }
+  ur_usm_type_t MemType = UR_USM_TYPE_UNKNOWN;
 
-    if (Num2ByteChunks == 1) {
-      auto Chunk =
-          static_cast<const uint16_t *>(pPattern)[Num4ByteChunks * 2 + 1];
-      cuMemsetD2D16Async(Ptr + Repeats * PatternSize +
-                             Num4ByteChunks * sizeof(uint32_t),
-                         pitch, Chunk, 1, Height, Stream);
-    }
+//  UR_CHECK_ERROR(urUSMGetMemAllocInfo(hQueue->getContext(), pMem,
+//                                      UR_USM_ALLOC_INFO_TYPE, sizeof(MemType),
+//                                      &MemType, nullptr));
 
-    if (Num1ByteChunks == 1) {
-      auto Chunk = static_cast<const uint8_t *>(
-          pPattern)[Num4ByteChunks * 4 + Num2ByteChunks * 2 + 1];
-      cuMemsetD2D8Async(Ptr + Repeats * PatternSize +
-                            Num4ByteChunks * sizeof(uint32_t) +
-                            Num2ByteChunks * sizeof(uint16_t),
-                        pitch, Chunk, 1, Height, Stream);
-    }
+  void *FirstRow = pMem;
+  //  switch (MemType) {
+  //  case UR_USM_TYPE_DEVICE: {
+  //    UR_CHECK_ERROR(urUSMDeviceAlloc(hQueue->getContext(),
+  //    hQueue->get_device(),
+  //                                    nullptr, nullptr, Width, &RowMem));
+  //    break;
+  //  }
+  //  /* If it is host memory allocated with new, CUDA will return
+  //  UR_USM_TYPE_UNKNOWN */ case UR_USM_TYPE_HOST: case UR_USM_TYPE_UNKNOWN: {
+  //    UR_CHECK_ERROR(
+  //        urUSMHostAlloc(hQueue->getContext(), nullptr, nullptr, Width,
+  //        &RowMem));
+  //    break;
+  //  }
+  //  case UR_USM_TYPE_SHARED: {
+  //    UR_CHECK_ERROR(urUSMSharedAlloc(hQueue->getContext(),
+  //    hQueue->get_device(),
+  //                                    nullptr, nullptr, Width, &RowMem));
+  //    break;
+  //  }
+  //  default: {
+  //    return UR_RESULT_ERROR_UNKNOWN;
+  //  }
+  //  }
+
+  /* Copy the pattern from host memory into the first row */
+  UR_CHECK_ERROR(urEnqueueUSMMemcpy(hQueue, true, FirstRow, pPattern,
+                                    PatternSize, 0, nullptr, nullptr));
+
+  /* Fill the rest of the row with copies of the pattern */
+  const auto PatternsPerRow = Width / PatternSize;
+  for (int i = 1; i < PatternsPerRow; ++i) {
+    UR_CHECK_ERROR(urEnqueueUSMMemcpy(
+        hQueue, true, static_cast<char *>(FirstRow) + PatternSize * i, FirstRow,
+        PatternSize, 0, nullptr, nullptr));
   }
+
+  /* Fill the matrix with copies of the first row */
+  for (int i = 1; i < Height; ++i) {
+    UR_CHECK_ERROR(urEnqueueUSMMemcpy(hQueue, true,
+                                      static_cast<char *>(pMem) + pitch * i,
+                                      FirstRow, Width, 0, nullptr, nullptr));
+  }
+
+//  UR_CHECK_ERROR(urUSMFree(hQueue->getContext(), FirstRow));
 
   return UR_RESULT_SUCCESS;
 }
@@ -1527,7 +1589,7 @@ UR_APIEXPORT ur_result_t UR_APICALL urEnqueueUSMFill2D(
     const void *pPattern, size_t width, size_t height,
     uint32_t numEventsInWaitList, const ur_event_handle_t *phEventWaitList,
     ur_event_handle_t *phEvent) {
-
+//  std::cerr << "HERE" << std::endl;
   ur_result_t Result = UR_RESULT_SUCCESS;
   std::unique_ptr<ur_event_handle_t_> EventPtr{nullptr};
 
@@ -1569,8 +1631,11 @@ UR_APIEXPORT ur_result_t UR_APICALL urEnqueueUSMFill2D(
       break;
     }
     default: {
+//      UR_CHECK_ERROR(commonMemSetLargePattern2D(
+//          CuStream, pitch, patternSize, pPattern, width, height,
+//          reinterpret_cast<CUdeviceptr>(pMem)));
       UR_CHECK_ERROR(commonMemSetLargePattern2D(
-          CuStream, pitch, patternSize, pPattern, width, height,
+          hQueue, pMem, pitch, patternSize, pPattern, width, height,
           reinterpret_cast<CUdeviceptr>(pMem)));
     }
     }
