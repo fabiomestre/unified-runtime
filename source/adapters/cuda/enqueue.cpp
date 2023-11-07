@@ -818,50 +818,86 @@ ur_result_t commonMemSetLargePattern2D(ur_queue_handle_t hQueue, void *pMem,
 
   ur_usm_type_t MemType = UR_USM_TYPE_UNKNOWN;
 
-  UR_CHECK_ERROR(urUSMGetMemAllocInfo(hQueue->getContext(), pMem,
-                                      UR_USM_ALLOC_INFO_TYPE, sizeof(MemType),
-                                      &MemType, nullptr));
+  void *FirstRow = pMem;
 
-  void *RowMem;
-  switch (MemType) {
-  case UR_USM_TYPE_DEVICE: {
-    UR_CHECK_ERROR(urUSMDeviceAlloc(hQueue->getContext(), hQueue->get_device(),
-                                    nullptr, nullptr, Width, &RowMem));
-    break;
-  }
-  /* If it is host memory allocated with new, CUDA will return UR_USM_TYPE_UNKNOWN */
-  case UR_USM_TYPE_HOST:
-  case UR_USM_TYPE_UNKNOWN: {
-    UR_CHECK_ERROR(
-        urUSMHostAlloc(hQueue->getContext(), nullptr, nullptr, Width, &RowMem));
-    break;
-  }
-  case UR_USM_TYPE_SHARED: {
-    UR_CHECK_ERROR(urUSMSharedAlloc(hQueue->getContext(), hQueue->get_device(),
-                                    nullptr, nullptr, Width, &RowMem));
-    break;
-  }
-  default: {
-    return UR_RESULT_ERROR_UNKNOWN;
-  }
-  }
+  /* Copy the pattern from host memory into the first row */
+  UR_CHECK_ERROR(urEnqueueUSMMemcpy(hQueue, true, FirstRow, pPattern,
+                                    PatternSize, 0, nullptr, nullptr));
 
+
+
+  /* Fill the rest of the row with copies of the pattern */
   const auto PatternsPerRow = Width / PatternSize;
-  for (int i = 0; i < PatternsPerRow; ++i) {
+  std::vector<ur_event_handle_t> events(PatternsPerRow - 1);
+  for (int i = 1; i < PatternsPerRow; ++i) {
     UR_CHECK_ERROR(urEnqueueUSMMemcpy(
-        hQueue, true, static_cast<char *>(RowMem) + PatternSize * i, pPattern,
-        PatternSize, 0, nullptr, nullptr));
+        hQueue, false, static_cast<char *>(FirstRow) + PatternSize * i, FirstRow,
+        PatternSize, 0, nullptr, &events[i - 1]));
   }
 
-  for (int i = 0; i < Height; ++i) {
-    UR_CHECK_ERROR(urEnqueueUSMMemcpy(hQueue, true, static_cast<char*>(pMem) + pitch * i, RowMem, Width, 0,
-                                      nullptr, nullptr));
-  }
+  urEventWait(events.size(), events.data());
 
-  UR_CHECK_ERROR(urUSMFree(hQueue->getContext(), RowMem));
+  /* Fill the matrix with copies of the first row */
+  for (int i = 1; i < Height; ++i) {
+    UR_CHECK_ERROR(urEnqueueUSMMemcpy(hQueue, false,
+                                      static_cast<char *>(pMem) + pitch * i,
+                                      FirstRow, Width, 0, nullptr, nullptr));
+  }
 
   return UR_RESULT_SUCCESS;
 }
+
+//ur_result_t commonMemSetLargePattern2D(ur_queue_handle_t hQueue, void *pMem,
+//                                       size_t pitch, size_t PatternSize,
+//                                       const void *pPattern, size_t Width,
+//                                       size_t Height, CUdeviceptr Ptr) {
+//
+//  ur_usm_type_t MemType = UR_USM_TYPE_UNKNOWN;
+//
+//  UR_CHECK_ERROR(urUSMGetMemAllocInfo(hQueue->getContext(), pMem,
+//                                      UR_USM_ALLOC_INFO_TYPE, sizeof(MemType),
+//                                      &MemType, nullptr));
+//
+//  void *RowMem;
+//  switch (MemType) {
+//  case UR_USM_TYPE_DEVICE: {
+//    UR_CHECK_ERROR(urUSMDeviceAlloc(hQueue->getContext(), hQueue->get_device(),
+//                                    nullptr, nullptr, Width, &RowMem));
+//    break;
+//  }
+//  /* If it is host memory allocated with new, CUDA will return UR_USM_TYPE_UNKNOWN */
+//  case UR_USM_TYPE_HOST:
+//  case UR_USM_TYPE_UNKNOWN: {
+//    UR_CHECK_ERROR(
+//        urUSMHostAlloc(hQueue->getContext(), nullptr, nullptr, Width, &RowMem));
+//    break;
+//  }
+//  case UR_USM_TYPE_SHARED: {
+//    UR_CHECK_ERROR(urUSMSharedAlloc(hQueue->getContext(), hQueue->get_device(),
+//                                    nullptr, nullptr, Width, &RowMem));
+//    break;
+//  }
+//  default: {
+//    return UR_RESULT_ERROR_UNKNOWN;
+//  }
+//  }
+//
+//  const auto PatternsPerRow = Width / PatternSize;
+//  for (int i = 0; i < PatternsPerRow; ++i) {
+//    UR_CHECK_ERROR(urEnqueueUSMMemcpy(
+//        hQueue, true, static_cast<char *>(RowMem) + PatternSize * i, pPattern,
+//        PatternSize, 0, nullptr, nullptr));
+//  }
+//
+//  for (int i = 0; i < Height; ++i) {
+//    UR_CHECK_ERROR(urEnqueueUSMMemcpy(hQueue, true, static_cast<char*>(pMem) + pitch * i, RowMem, Width, 0,
+//                                      nullptr, nullptr));
+//  }
+//
+//  UR_CHECK_ERROR(urUSMFree(hQueue->getContext(), RowMem));
+//
+//  return UR_RESULT_SUCCESS;
+//}
 
 UR_APIEXPORT ur_result_t UR_APICALL urEnqueueMemBufferFill(
     ur_queue_handle_t hQueue, ur_mem_handle_t hBuffer, const void *pPattern,
