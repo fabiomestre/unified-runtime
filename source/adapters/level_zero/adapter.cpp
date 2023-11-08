@@ -11,6 +11,21 @@
 #include "adapter.hpp"
 #include "ur_level_zero.hpp"
 
+class ur_legacy_sink : public logger::Sink {
+public:
+  ur_legacy_sink(std::string logger_name = "", bool skip_prefix = true)
+      : Sink(std::move(logger_name), skip_prefix) {
+    this->ostream = &std::cerr;
+  }
+
+  virtual void print([[maybe_unused]] logger::Level level,
+                     const std::string &msg) override {
+    fprintf(stderr, "%s", msg.c_str());
+  }
+
+  ~ur_legacy_sink() = default;
+};
+
 ur_result_t initPlatforms(PlatformVec &platforms) noexcept try {
   uint32_t ZeDriverCount = 0;
   ZE2UR_CALL(zeDriverGet, (&ZeDriverCount, nullptr));
@@ -36,7 +51,17 @@ ur_result_t initPlatforms(PlatformVec &platforms) noexcept try {
 
 ur_result_t adapterStateInit() { return UR_RESULT_SUCCESS; }
 
-ur_adapter_handle_t_::ur_adapter_handle_t_() {
+ur_adapter_handle_t_::ur_adapter_handle_t_()
+    : logger(logger::get_logger("level_zero")) {
+
+  if (UrL0Debug & UR_L0_DEBUG_BASIC) {
+    logger.setLegacySink(std::make_unique<ur_legacy_sink>());
+  };
+
+  if (UrL0Debug & UR_L0_DEBUG_VALIDATION) {
+    setEnvVar("ZE_ENABLE_VALIDATION_LAYER", "1");
+    setEnvVar("ZE_ENABLE_PARAMETER_VALIDATION", "1");
+  }
 
   Adapter.PlatformCache.Compute = [](Result<PlatformVec> &result) {
     static std::once_flag ZeCallCountInitialized;
@@ -61,7 +86,7 @@ ur_adapter_handle_t_::ur_adapter_handle_t_() {
       }
 
       if (getenv("SYCL_ENABLE_PCI") != nullptr) {
-        urPrint(
+        logger::warning(
             "WARNING: SYCL_ENABLE_PCI is deprecated and no longer needed.\n");
       }
 
@@ -83,7 +108,7 @@ ur_adapter_handle_t_::ur_adapter_handle_t_() {
       return;
     }
     if (*Adapter.ZeResult != ZE_RESULT_SUCCESS) {
-      urPrint("zeInit: Level Zero initialization failure\n");
+      logger::error("zeInit: Level Zero initialization failure\n");
       result = ze2urResult(*Adapter.ZeResult);
       return;
     }
@@ -145,10 +170,10 @@ ur_result_t adapterStateTeardown() {
     //               zeMemAllocShared = 0     \--->               zeMemFree = 1
     //
     // clang-format on
-
-    fprintf(stderr, "Check balance of create/destroy calls\n");
-    fprintf(stderr,
-            "----------------------------------------------------------\n");
+    // TODO: use logger to print this messages
+    std::cerr << "Check balance of create/destroy calls\n";
+    std::cerr << "----------------------------------------------------------\n";
+    std::stringstream ss;
     for (const auto &Row : CreateDestroySet) {
       int diff = 0;
       for (auto I = Row.begin(); I != Row.end();) {
@@ -159,23 +184,30 @@ ur_result_t adapterStateTeardown() {
         bool Last = (++I == Row.end());
 
         if (Last) {
-          fprintf(stderr, " \\--->");
+          ss << " \\--->";
           diff -= ZeCount;
         } else {
           diff += ZeCount;
           if (!First) {
-            fprintf(stderr, " | \n");
+            ss << " | ";
+            std::cerr << ss.str() << "\n";
+            ss.str("");
+            ss.clear();
           }
         }
-
-        fprintf(stderr, "%30s = %-5d", ZeName, ZeCount);
+        ss << std::setw(30) << std::right << ZeName;
+        ss << " = ";
+        ss << std::setw(5) << std::left << ZeCount;
       }
 
       if (diff) {
         LeakFound = true;
-        fprintf(stderr, " ---> LEAK = %d", diff);
+        ss << " ---> LEAK = " << diff;
       }
-      fprintf(stderr, "\n");
+
+      std::cerr << ss.str() << '\n';
+      ss.str("");
+      ss.clear();
     }
 
     ZeCallCount->clear();
