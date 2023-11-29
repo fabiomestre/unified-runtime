@@ -37,7 +37,8 @@ struct urTest : ::testing::Test {
     }
 
     ur_loader_config_handle_t loader_config = nullptr;
-    std::vector<ur_adapter_handle_t> adapters;
+    std::vector<ur_adapter_handle_t>
+        .adapters;
 };
 
 struct urPlatformsTest : urTest {

@@ -77,8 +77,9 @@ uur::PlatformEnvironment::PlatformEnvironment(int argc, char **argv)
     }
 
     uint32_t adapter_count = 0;
+
     urAdapterGet(0, nullptr, &adapter_count);
-    adapters.resize(adapter_count);
+    std::vector<ur_adapter_handle_t> adapters(adapter_count);
     urAdapterGet(adapter_count, adapters.data(), nullptr);
 
     uint32_t count = 0;
@@ -141,6 +142,46 @@ uur::PlatformEnvironment::PlatformEnvironment(int argc, char **argv)
             return;
         }
     }
+
+    ur_platform_backend_t platform_backend;
+    if (urPlatformGetInfo(platform, UR_PLATFORM_INFO_BACKEND,
+                          sizeof(ur_platform_backend_t), &platform_backend,
+                          nullptr)) {
+        error = "urPlatformGetInfo() failed";
+        return;
+    }
+    for (auto &candidate_adapter : adapters) {
+        ur_adapter_backend_t adapter_backend;
+        if (urAdapterGetInfo(candidate_adapter, UR_ADAPTER_INFO_BACKEND,
+                             sizeof(ur_adapter_backend_t), &adapter_backend,
+                             nullptr)) {
+            error = "urAdapterGetInfo() failed";
+            return;
+        }
+
+        std::unordered_map<ur_platform_backend_t, ur_adapter_backend_t>
+            backend_map{
+                {UR_PLATFORM_BACKEND_CUDA, UR_ADAPTER_BACKEND_CUDA},
+                {UR_PLATFORM_BACKEND_HIP, UR_ADAPTER_BACKEND_HIP},
+                {UR_PLATFORM_BACKEND_LEVEL_ZERO, UR_ADAPTER_BACKEND_LEVEL_ZERO},
+                {UR_PLATFORM_BACKEND_OPENCL, UR_ADAPTER_BACKEND_OPENCL},
+                {UR_PLATFORM_BACKEND_NATIVE_CPU,
+                 UR_ADAPTER_BACKEND_NATIVE_CPU}};
+
+        if (backend_map.at(platform_backend) == adapter_backend) {
+            adapter = candidate_adapter;
+        } else {
+            if (urAdapterRelease(candidate_adapter)) {
+                error = "urAdapterRelease() failed";
+                return;
+            };
+        }
+    }
+    if (adapter == nullptr) {
+        error =
+            "The Platform backend does not match any of the available adapters";
+        return;
+    }
 }
 
 void uur::PlatformEnvironment::SetUp() {
@@ -157,8 +198,8 @@ void uur::PlatformEnvironment::TearDown() {
     if (error == ERROR_NO_ADAPTER) {
         return;
     }
-    for (auto adapter : adapters) {
-        urAdapterRelease(adapter);
+    if (urAdapterRelease(adapter)) {
+        FAIL() << "urAdapterRelease() failed";
     }
     ur_tear_down_params_t tear_down_params{};
     if (urTearDown(&tear_down_params)) {

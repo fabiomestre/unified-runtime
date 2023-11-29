@@ -28,11 +28,18 @@ inline std::ostream &operator<<(std::ostream &out, const Result &result) {
     return out;
 }
 
+inline Result filter_warnings(Result actual_result) {
+//    auto size = uur::PlatformEnvironment::instance->adapters.size();
+//    std::cerr << size << std::endl;
+    return Result(actual_result.value);
+    //    if (actual_result == UR_RESULT_ERROR_ADAPTER_SPECIFIC && urAdapterGetLastError())
+}
+
 } // namespace uur
 
 #ifndef ASSERT_EQ_RESULT
 #define ASSERT_EQ_RESULT(EXPECTED, ACTUAL)                                     \
-    ASSERT_EQ(uur::Result(EXPECTED), uur::Result(ACTUAL))
+    ASSERT_EQ(uur::Result(EXPECTED), uur::filter_warnings(uur::Result(ACTUAL)))
 #endif
 #ifndef ASSERT_SUCCESS
 #define ASSERT_SUCCESS(ACTUAL) ASSERT_EQ_RESULT(UR_RESULT_SUCCESS, ACTUAL)
@@ -40,7 +47,7 @@ inline std::ostream &operator<<(std::ostream &out, const Result &result) {
 
 #ifndef EXPECT_EQ_RESULT
 #define EXPECT_EQ_RESULT(EXPECTED, ACTUAL)                                     \
-    EXPECT_EQ(uur::Result(EXPECTED), uur::Result(ACTUAL))
+    EXPECT_EQ(uur::Result(EXPECTED), uur::filter_warnings(uur::Result(ACTUAL)))
 #endif
 #ifndef EXPECT_SUCCESS
 #define EXPECT_SUCCESS(ACTUAL) EXPECT_EQ_RESULT(UR_RESULT_SUCCESS, ACTUAL)
