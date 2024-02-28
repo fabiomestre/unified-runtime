@@ -11,17 +11,17 @@
 
 namespace logger {
 
-enum class Level { DEBUG, INFO, WARN, ERR, QUIET };
+//enum class Level { DEBUG, INFO, WARN, ERR, QUIET };
 
-inline constexpr auto level_to_str(Level level) {
+inline constexpr auto level_to_str(ur_log_level_t level) {
     switch (level) {
-    case Level::DEBUG:
+    case ur_log_level_t::UR_LOG_LEVEL_DEBUG:
         return "DEBUG";
-    case Level::INFO:
+    case ur_log_level_t::UR_LOG_LEVEL_INFO:
         return "INFO";
-    case Level::WARN:
+    case ur_log_level_t::UR_LOG_LEVEL_WARN:
         return "WARNING";
-    case Level::ERR:
+    case ur_log_level_t::UR_LOG_LEVEL_ERR:
         return "ERROR";
     default:
         return "";
@@ -31,13 +31,14 @@ inline constexpr auto level_to_str(Level level) {
 inline auto str_to_level(std::string name) {
     struct lvl_name {
         std::string name;
-        Level lvl;
+        ur_log_level_t lvl;
     };
 
-    const lvl_name lvl_names[] = {{"debug", Level::DEBUG},
-                                  {"info", Level::INFO},
-                                  {"warning", Level::WARN},
-                                  {"error", Level::ERR}};
+    const lvl_name lvl_names[] = {
+        {"debug", ur_log_level_t::UR_LOG_LEVEL_DEBUG},
+        {"info", ur_log_level_t::UR_LOG_LEVEL_INFO},
+        {"warning", ur_log_level_t::UR_LOG_LEVEL_WARN},
+        {"error", ur_log_level_t::UR_LOG_LEVEL_ERR}};
 
     for (auto const &item : lvl_names) {
         if (item.name.compare(name) == 0) {

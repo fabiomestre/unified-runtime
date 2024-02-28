@@ -63,3 +63,10 @@ UR_APIEXPORT ur_result_t UR_APICALL urAdapterGetInfo(ur_adapter_handle_t,
 
   return UR_RESULT_SUCCESS;
 }
+
+UR_APIEXPORT ur_result_t UR_APICALL
+urAdapterSetLoggingCallback(ur_adapter_handle_t *, uint32_t,
+                            ur_logger_callback_t pfnLogger, void *pUserData) {
+  Adapter.logger.setLoggingCallback(&Adapter, pfnLogger, pUserData);
+  return UR_RESULT_SUCCESS;
+}

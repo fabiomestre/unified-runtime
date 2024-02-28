@@ -91,7 +91,7 @@ class DefaultLoggerWithFileSink : public UniquePtrLoggerWithFilesink {
   protected:
     void SetUp() override {
         logger = std::make_unique<logger::Logger>(
-            logger::Level::WARN,
+            ur_log_level_t ::UR_LOG_LEVEL_WARN,
             std::make_unique<logger::FileSink>(logger_name, file_path));
     }
 };

@@ -51,7 +51,7 @@ TEST_F(DefaultLoggerWithFileSink, NoBraces) {
 }
 
 TEST_F(DefaultLoggerWithFileSink, SetLevelDebug) {
-    auto level = logger::Level::DEBUG;
+    auto level = ur_log_level_t ::UR_LOG_LEVEL_DEBUG;
     logger->setLevel(level);
     logger->setFlushLevel(level);
     logger->debug("Test message: {}", "success");
@@ -60,7 +60,7 @@ TEST_F(DefaultLoggerWithFileSink, SetLevelDebug) {
 }
 
 TEST_F(DefaultLoggerWithFileSink, SetLevelInfo) {
-    auto level = logger::Level::INFO;
+    auto level = ur_log_level_t ::UR_LOG_LEVEL_DEBUG;
     logger->setLevel(level);
     logger->setFlushLevel(level);
     logger->info("Test message: {}", "success");
@@ -70,7 +70,7 @@ TEST_F(DefaultLoggerWithFileSink, SetLevelInfo) {
 }
 
 TEST_F(DefaultLoggerWithFileSink, SetLevelWarning) {
-    auto level = logger::Level::WARN;
+    auto level = ur_log_level_t ::UR_LOG_LEVEL_WARN;
     logger->setLevel(level);
     logger->warning("Test message: {}", "success");
     logger->info("This should not be printed: {}", 42);
@@ -79,7 +79,7 @@ TEST_F(DefaultLoggerWithFileSink, SetLevelWarning) {
 }
 
 TEST_F(DefaultLoggerWithFileSink, SetLevelError) {
-    logger->setLevel(logger::Level::ERR);
+    logger->setLevel(ur_log_level_t ::UR_LOG_LEVEL_ERR);
     logger->error("Test message: {}", "success");
     logger->warning("This should not be printed: {}", 42);
 
@@ -88,7 +88,7 @@ TEST_F(DefaultLoggerWithFileSink, SetLevelError) {
 
 //////////////////////////////////////////////////////////////////////////////
 TEST_F(UniquePtrLoggerWithFilesink, SetLogLevelAndFlushLevelDebugWithCtor) {
-    auto level = logger::Level::DEBUG;
+    auto level = ur_log_level_t ::UR_LOG_LEVEL_DEBUG;
     logger = std::make_unique<logger::Logger>(
         level,
         std::make_unique<logger::FileSink>(logger_name, file_path, level));
@@ -106,15 +106,17 @@ TEST_F(UniquePtrLoggerWithFilesink, NestedFilePath) {
     filesystem::create_directories(file_path);
     file_path /= file_name;
     logger = std::make_unique<logger::Logger>(
-        logger::Level::WARN, std::make_unique<logger::FileSink>(
-                                 logger_name, file_path, logger::Level::WARN));
+        ur_log_level_t ::UR_LOG_LEVEL_WARN,
+        std::make_unique<logger::FileSink>(logger_name, file_path,
+                                           ur_log_level_t ::UR_LOG_LEVEL_WARN));
 
     logger->warning("Test message: {}", "success");
     test_msg << test_msg_prefix << "[WARNING]: Test message: success\n";
 }
 
 TEST_F(UniquePtrLoggerWithFilesinkFail, NullSink) {
-    logger = std::make_unique<logger::Logger>(logger::Level::INFO, nullptr);
+    logger = std::make_unique<logger::Logger>(
+        ur_log_level_t ::UR_LOG_LEVEL_DEBUG, nullptr);
     logger->info("This should not be printed: {}", 42);
     test_msg.clear();
 }
@@ -128,7 +130,7 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_P(FileSinkLoggerMultipleThreads, Multithreaded) {
     std::vector<std::thread> threads;
     auto local_logger = logger::Logger(
-        logger::Level::WARN,
+        ur_log_level_t ::UR_LOG_LEVEL_WARN,
         std::make_unique<logger::FileSink>(logger_name, file_path, true));
     constexpr int message_count = 50;
 
@@ -175,7 +177,7 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_P(CommonLoggerWithMultipleThreads, StdoutMultithreaded) {
     std::vector<std::thread> threads;
     auto local_logger =
-        logger::Logger(logger::Level::WARN,
+        logger::Logger(ur_log_level_t ::UR_LOG_LEVEL_WARN,
                        std::make_unique<logger::StdoutSink>("test", true));
     constexpr int message_count = 50;
 

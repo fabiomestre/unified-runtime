@@ -19,10 +19,14 @@ namespace logger {
 
 class Sink {
   public:
+    /**
+     * Creates a new log entry.
+     * Adds information about the logger and log level if skip_prefix is false.
+     */
     template <typename... Args>
-    void log(logger::Level level, const char *fmt, Args &&...args) {
+    void log(ur_log_level_t level, const char *fmt, Args &&...args) {
         std::ostringstream buffer;
-        if (!skip_prefix && level != logger::Level::QUIET) {
+        if (!skip_prefix) {
             buffer << "<" << logger_name << ">"
                    << "[" << level_to_str(level) << "]: ";
         }
@@ -31,21 +35,33 @@ class Sink {
         print(level, buffer.str());
     }
 
-    void setFlushLevel(logger::Level level) { this->flush_level = level; }
+    /**
+     * Creates a new log entry.
+     * Does not add any extra information even if skip_prefix is set to false.
+     * Always flushes the stream.
+     */
+    template <typename... Args>
+    void logSimple(const char *fmt, Args &&...args) {
+        std::ostringstream buffer;
+        format(buffer, fmt, std::forward<Args &&>(args)...);
+        print(ur_log_level_t::UR_LOG_LEVEL_ERR, buffer.str());
+    }
+
+    void setFlushLevel(ur_log_level_t level) { this->flush_level = level; }
 
     virtual ~Sink() = default;
 
   protected:
     std::ostream *ostream;
-    logger::Level flush_level;
+    ur_log_level_t flush_level;
 
     Sink(std::string logger_name, bool skip_prefix = false)
         : logger_name(std::move(logger_name)), skip_prefix(skip_prefix) {
         ostream = nullptr;
-        flush_level = logger::Level::ERR;
+        flush_level = ur_log_level_t::UR_LOG_LEVEL_ERR;
     }
 
-    virtual void print(logger::Level level, const std::string &msg) {
+    virtual void print(ur_log_level_t level, const std::string &msg) {
         std::scoped_lock<std::mutex> lock(output_mutex);
         *ostream << msg;
         if (level >= flush_level) {
@@ -134,7 +150,7 @@ class StdoutSink : public Sink {
         this->ostream = &std::cout;
     }
 
-    StdoutSink(std::string logger_name, Level flush_lvl,
+    StdoutSink(std::string logger_name, ur_log_level_t flush_lvl,
                bool skip_prefix = false)
         : StdoutSink(std::move(logger_name), skip_prefix) {
         this->flush_level = flush_lvl;
@@ -150,7 +166,8 @@ class StderrSink : public Sink {
         this->ostream = &std::cerr;
     }
 
-    StderrSink(std::string logger_name, Level flush_lvl, bool skip_prefix)
+    StderrSink(std::string logger_name, ur_log_level_t flush_lvl,
+               bool skip_prefix)
         : StderrSink(std::move(logger_name), skip_prefix) {
         this->flush_level = flush_lvl;
     }
@@ -174,7 +191,7 @@ class FileSink : public Sink {
     }
 
     FileSink(std::string logger_name, filesystem::path file_path,
-             Level flush_lvl, bool skip_prefix = false)
+             ur_log_level_t flush_lvl, bool skip_prefix = false)
         : FileSink(std::move(logger_name), std::move(file_path), skip_prefix) {
         this->flush_level = flush_lvl;
     }

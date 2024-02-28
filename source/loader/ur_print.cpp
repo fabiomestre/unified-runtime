@@ -59,6 +59,13 @@ ur_result_t urPrintResult(enum ur_result_t value, char *buffer,
     return str_copy(&ss, buffer, buff_size, out_size);
 }
 
+ur_result_t urPrintLogLevel(enum ur_log_level_t value, char *buffer,
+                            const size_t buff_size, size_t *out_size) {
+    std::stringstream ss;
+    ss << value;
+    return str_copy(&ss, buffer, buff_size, out_size);
+}
+
 ur_result_t urPrintBaseProperties(const struct ur_base_properties_t params,
                                   char *buffer, const size_t buff_size,
                                   size_t *out_size) {
@@ -1049,6 +1056,14 @@ ur_result_t
 urPrintAdapterGetInfoParams(const struct ur_adapter_get_info_params_t *params,
                             char *buffer, const size_t buff_size,
                             size_t *out_size) {
+    std::stringstream ss;
+    ss << params;
+    return str_copy(&ss, buffer, buff_size, out_size);
+}
+
+ur_result_t urPrintAdapterSetLoggingCallbackParams(
+    const struct ur_adapter_set_logging_callback_params_t *params, char *buffer,
+    const size_t buff_size, size_t *out_size) {
     std::stringstream ss;
     ss << params;
     return str_copy(&ss, buffer, buff_size, out_size);

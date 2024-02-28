@@ -8,6 +8,7 @@ set_tests_properties(example-hello-world PROPERTIES LABELS "loader"
     ENVIRONMENT "UR_ADAPTERS_FORCE_LOAD=\"$<TARGET_FILE:ur_adapter_null>\""
 )
 
+add_subdirectory(adapter)
 add_subdirectory(adapter_registry)
 add_subdirectory(loader_config)
 add_subdirectory(loader_lifetime)

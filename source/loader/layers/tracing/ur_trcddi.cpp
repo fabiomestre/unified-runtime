@@ -161,6 +161,43 @@ __urdlllocal ur_result_t UR_APICALL urAdapterGetInfo(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+/// @brief Intercept function for urAdapterSetLoggingCallback
+__urdlllocal ur_result_t UR_APICALL urAdapterSetLoggingCallback(
+    ur_adapter_handle_t *
+        phAdapters, ///< [in][range(0, NumAdapters)] array of adapters where the callback will
+                    ///< be set.
+    uint32_t NumAdapters, ///< [in] number of adapters pointed to by phAdapters.
+    ur_logger_callback_t
+        pfnLogger, ///< [in][optional] Function pointer to the callback function that will
+                   ///< process the warning messages.
+                   ///< If set to nullptr, the callback function will be unset."
+    void *
+        pUserData ///< [in][out][optional] pointer to data to be passed to the callback.
+) {
+    auto pfnAdapterSetLoggingCallback =
+        context.urDdiTable.Global.pfnAdapterSetLoggingCallback;
+
+    if (nullptr == pfnAdapterSetLoggingCallback) {
+        return UR_RESULT_ERROR_UNSUPPORTED_FEATURE;
+    }
+
+    ur_adapter_set_logging_callback_params_t params = {
+        &phAdapters, &NumAdapters, &pfnLogger, &pUserData};
+    uint64_t instance =
+        context.notify_begin(UR_FUNCTION_ADAPTER_SET_LOGGING_CALLBACK,
+                             "urAdapterSetLoggingCallback", &params);
+
+    ur_result_t result = pfnAdapterSetLoggingCallback(phAdapters, NumAdapters,
+                                                      pfnLogger, pUserData);
+
+    context.notify_end(UR_FUNCTION_ADAPTER_SET_LOGGING_CALLBACK,
+                       "urAdapterSetLoggingCallback", &params, &result,
+                       instance);
+
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 /// @brief Intercept function for urPlatformGet
 __urdlllocal ur_result_t UR_APICALL urPlatformGet(
     ur_adapter_handle_t *
@@ -6357,6 +6394,11 @@ __urdlllocal ur_result_t UR_APICALL urGetGlobalProcAddrTable(
 
     dditable.pfnAdapterGetInfo = pDdiTable->pfnAdapterGetInfo;
     pDdiTable->pfnAdapterGetInfo = ur_tracing_layer::urAdapterGetInfo;
+
+    dditable.pfnAdapterSetLoggingCallback =
+        pDdiTable->pfnAdapterSetLoggingCallback;
+    pDdiTable->pfnAdapterSetLoggingCallback =
+        ur_tracing_layer::urAdapterSetLoggingCallback;
 
     return result;
 }

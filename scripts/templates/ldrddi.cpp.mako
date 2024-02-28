@@ -127,6 +127,21 @@ namespace ur_loader
         if( ${X}_RESULT_SUCCESS == result && ${obj['params'][4]['name']} != nullptr )
             *${obj['params'][4]['name']} = total_platform_handle_count;
 
+        %elif re.match(r"\w+AdapterSetLoggingCallback$", th.make_func_name(n, tags, obj)):
+            if (${obj['params'][0]['name']} == nullptr) {
+                return result;
+            }
+
+            for( uint32_t adapter_index = 0; adapter_index < ${obj['params'][1]['name']}; adapter_index++)
+            {
+                auto dditable =
+                reinterpret_cast<${n}_adapter_object_t *>( ${obj['params'][0]['name']}[adapter_index])->dditable;
+
+                auto ${th.make_pfn_name(n, tags, obj)} = dditable->${n}.${th.get_table_name(n, tags, obj)}.${th.make_pfn_name(n, tags, obj)};
+
+                ${th.make_pfn_name(n, tags, obj)}(&${obj['params'][0]['name']}[adapter_index], 1, ${obj['params'][2]['name']}, ${obj['params'][3]['name']});
+            }
+
         %else:
         <%param_replacements={}%>
         %for i, item in enumerate(th.get_loader_prologue(n, tags, obj, meta)):

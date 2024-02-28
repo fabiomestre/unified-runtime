@@ -467,6 +467,50 @@ ur_result_t UR_APICALL urAdapterGetInfo(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+/// @brief Set a function callback for use by the adapters when logging messages.
+///
+/// @details
+///     - Sets a function callback that will be used by the adapters when
+///       logging messages.
+///     - The callback will be called for every message logged by the adapters
+///       specified in `phAdapters`.
+///     - Sending log messages is optional and adapters are not required to
+///       implement this feature for any entrypoint.
+///     - The application can disable log messages at runtime by setting the
+///       environment variable `UR_DISABLE_LOGS`.
+///
+/// @returns
+///     - ::UR_RESULT_SUCCESS
+///     - ::UR_RESULT_ERROR_UNINITIALIZED
+///     - ::UR_RESULT_ERROR_DEVICE_LOST
+///     - ::UR_RESULT_ERROR_ADAPTER_SPECIFIC
+///     - ::UR_RESULT_ERROR_INVALID_NULL_POINTER
+///         + `NULL == phAdapters`
+ur_result_t UR_APICALL urAdapterSetLoggingCallback(
+    ur_adapter_handle_t *
+        phAdapters, ///< [in][range(0, NumAdapters)] array of adapters where the callback will
+                    ///< be set.
+    uint32_t NumAdapters, ///< [in] number of adapters pointed to by phAdapters.
+    ur_logger_callback_t
+        pfnLogger, ///< [in][optional] Function pointer to the callback function that will
+                   ///< process the warning messages.
+                   ///< If set to nullptr, the callback function will be unset."
+    void *
+        pUserData ///< [in][out][optional] pointer to data to be passed to the callback.
+    ) try {
+    auto pfnAdapterSetLoggingCallback =
+        ur_lib::context->urDdiTable.Global.pfnAdapterSetLoggingCallback;
+    if (nullptr == pfnAdapterSetLoggingCallback) {
+        return UR_RESULT_ERROR_UNINITIALIZED;
+    }
+
+    return pfnAdapterSetLoggingCallback(phAdapters, NumAdapters, pfnLogger,
+                                        pUserData);
+} catch (...) {
+    return exceptionToResult(std::current_exception());
+}
+
+///////////////////////////////////////////////////////////////////////////////
 /// @brief Retrieves all available platforms for the given adapters
 ///
 /// @details

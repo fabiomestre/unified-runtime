@@ -6,6 +6,7 @@
 #ifndef UR_LOGGER_DETAILS_HPP
 #define UR_LOGGER_DETAILS_HPP 1
 
+#include "ur_api.h"
 #include "ur_level.hpp"
 #include "ur_sinks.hpp"
 
@@ -18,34 +19,45 @@ struct LegacyMessage {
 
 class Logger {
   public:
-    Logger(std::unique_ptr<logger::Sink> sink) : sink(std::move(sink)) {
-        this->level = logger::Level::QUIET;
-    }
+    Logger(std::unique_ptr<logger::Sink> sink)
+        : sink(std::move(sink)), quiet(true) {}
 
-    Logger(logger::Level level, std::unique_ptr<logger::Sink> sink)
-        : level(level), sink(std::move(sink)) {}
+    Logger(ur_log_level_t level, std::unique_ptr<logger::Sink> sink)
+        : level(level), sink(std::move(sink)), quiet(false) {}
 
     ~Logger() = default;
 
-    void setLevel(logger::Level level) { this->level = level; }
+    void setLevel(ur_log_level_t level) { this->level = level; }
 
-    void setFlushLevel(logger::Level level) {
+    void setFlushLevel(ur_log_level_t level) {
         if (sink) {
             this->sink->setFlushLevel(level);
         }
     }
 
+    /* Sets a callback that can be used to access logs at runtime. */
+    void setLoggingCallback(ur_adapter_handle_t hAdapter,
+                            ur_logger_callback_t loggerCallback,
+                            void *callbackUserData) {
+        this->loggerCallback = loggerCallback;
+        this->callbackUserData = callbackUserData;
+        this->hAdapter = hAdapter;
+    }
+
     template <typename... Args> void debug(const char *format, Args &&...args) {
-        log(logger::Level::DEBUG, format, std::forward<Args>(args)...);
+        log(ur_log_level_t::UR_LOG_LEVEL_DEBUG, format,
+            std::forward<Args>(args)...);
     }
 
     template <typename... Args> void info(const char *format, Args &&...args) {
-        log(logger::Level::INFO, format, std::forward<Args>(args)...);
+        log(ur_log_level_t::UR_LOG_LEVEL_INFO, format,
+            std::forward<Args>(args)...);
     }
 
     template <typename... Args>
     void warning(const char *format, Args &&...args) {
-        log(logger::Level::WARN, format, std::forward<Args>(args)...);
+        log(ur_log_level_t::UR_LOG_LEVEL_WARN, format,
+            std::forward<Args>(args)...);
     }
 
     template <typename... Args> void warn(const char *format, Args &&...args) {
@@ -53,51 +65,60 @@ class Logger {
     }
 
     template <typename... Args> void error(const char *format, Args &&...args) {
-        log(logger::Level::ERR, format, std::forward<Args>(args)...);
+        log(ur_log_level_t::UR_LOG_LEVEL_ERR, format,
+            std::forward<Args>(args)...);
     }
 
     template <typename... Args>
     void always(const char *format, Args &&...args) {
         if (sink) {
-            sink->log(logger::Level::QUIET, format,
-                      std::forward<Args>(args)...);
+            sink->logSimple(format, std::forward<Args>(args)...);
         }
     }
 
     template <typename... Args>
     void debug(const logger::LegacyMessage &p, const char *format,
                Args &&...args) {
-        log(p, logger::Level::DEBUG, format, std::forward<Args>(args)...);
+        log(p, ur_log_level_t::UR_LOG_LEVEL_DEBUG, format,
+            std::forward<Args>(args)...);
     }
 
     template <typename... Args>
     void info(const logger::LegacyMessage &p, const char *format,
               Args &&...args) {
-        log(p, logger::Level::INFO, format, std::forward<Args>(args)...);
+        log(p, ur_log_level_t::UR_LOG_LEVEL_INFO, format,
+            std::forward<Args>(args)...);
     }
 
     template <typename... Args>
     void warning(const logger::LegacyMessage &p, const char *format,
                  Args &&...args) {
-        log(p, logger::Level::WARN, format, std::forward<Args>(args)...);
+        log(p, ur_log_level_t::UR_LOG_LEVEL_WARN, format,
+            std::forward<Args>(args)...);
     }
 
     template <typename... Args>
     void error(const logger::LegacyMessage &p, const char *format,
                Args &&...args) {
-        log(p, logger::Level::ERR, format, std::forward<Args>(args)...);
+        log(p, ur_log_level_t::UR_LOG_LEVEL_ERR, format,
+            std::forward<Args>(args)...);
     }
 
     template <typename... Args>
-    void log(logger::Level level, const char *format, Args &&...args) {
+    void log(ur_log_level_t level, const char *format, Args &&...args) {
         log(logger::LegacyMessage(format), level, format,
             std::forward<Args>(args)...);
     }
 
     template <typename... Args>
-    void log(const logger::LegacyMessage &p, logger::Level level,
+    void log(const logger::LegacyMessage &p, ur_log_level_t level,
              const char *format, Args &&...args) {
-        if (!sink) {
+
+        if (loggerCallback) {
+            loggerCallback(hAdapter, p.message, level, callbackUserData);
+        }
+
+        if (!sink || quiet) {
             return;
         }
 
@@ -118,9 +139,13 @@ class Logger {
     }
 
   private:
-    logger::Level level;
+    ur_log_level_t level;
     std::unique_ptr<logger::Sink> sink;
     bool isLegacySink = false;
+    bool quiet = true;
+    ur_logger_callback_t loggerCallback = nullptr;
+    void *callbackUserData = nullptr;
+    ur_adapter_handle_t hAdapter = nullptr;
 };
 
 } // namespace logger

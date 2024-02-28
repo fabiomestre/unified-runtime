@@ -43,6 +43,14 @@ UR_APIEXPORT ur_result_t UR_APICALL urPrintStructureType(enum ur_structure_type_
 UR_APIEXPORT ur_result_t UR_APICALL urPrintResult(enum ur_result_t value, char *buffer, const size_t buff_size, size_t *out_size);
 
 ///////////////////////////////////////////////////////////////////////////////
+/// @brief Print ur_log_level_t enum
+/// @returns
+///     - ::UR_RESULT_SUCCESS
+///     - ::UR_RESULT_ERROR_INVALID_SIZE
+///         - `buff_size < out_size`
+UR_APIEXPORT ur_result_t UR_APICALL urPrintLogLevel(enum ur_log_level_t value, char *buffer, const size_t buff_size, size_t *out_size);
+
+///////////////////////////////////////////////////////////////////////////////
 /// @brief Print ur_base_properties_t struct
 /// @returns
 ///     - ::UR_RESULT_SUCCESS
@@ -1729,6 +1737,14 @@ UR_APIEXPORT ur_result_t UR_APICALL urPrintAdapterGetLastErrorParams(const struc
 ///     - ::UR_RESULT_ERROR_INVALID_SIZE
 ///         - `buff_size < out_size`
 UR_APIEXPORT ur_result_t UR_APICALL urPrintAdapterGetInfoParams(const struct ur_adapter_get_info_params_t *params, char *buffer, const size_t buff_size, size_t *out_size);
+
+///////////////////////////////////////////////////////////////////////////////
+/// @brief Print ur_adapter_set_logging_callback_params_t struct
+/// @returns
+///     - ::UR_RESULT_SUCCESS
+///     - ::UR_RESULT_ERROR_INVALID_SIZE
+///         - `buff_size < out_size`
+UR_APIEXPORT ur_result_t UR_APICALL urPrintAdapterSetLoggingCallbackParams(const struct ur_adapter_set_logging_callback_params_t *params, char *buffer, const size_t buff_size, size_t *out_size);
 
 ///////////////////////////////////////////////////////////////////////////////
 /// @brief Print ur_enqueue_kernel_launch_params_t struct

@@ -577,6 +577,9 @@ etors:
 - name: DEVICE_GET_SELECTED
   desc: Enumerator for $xDeviceGetSelected
   value: '220'
+- name: ADAPTER_SET_LOGGING_CALLBACK
+  desc: Enumerator for $xAdapterSetLoggingCallback
+  value: '221'
 ---
 type: enum
 desc: Defines structure types

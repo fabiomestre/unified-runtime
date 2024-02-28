@@ -215,6 +215,7 @@ inline ur_result_t printTagged(std::ostream &os, const void *ptr, ur_exp_peer_in
 inline std::ostream &operator<<(std::ostream &os, enum ur_function_t value);
 inline std::ostream &operator<<(std::ostream &os, enum ur_structure_type_t value);
 inline std::ostream &operator<<(std::ostream &os, enum ur_result_t value);
+inline std::ostream &operator<<(std::ostream &os, enum ur_log_level_t value);
 inline std::ostream &operator<<(std::ostream &os, [[maybe_unused]] const struct ur_base_properties_t params);
 inline std::ostream &operator<<(std::ostream &os, [[maybe_unused]] const struct ur_base_desc_t params);
 inline std::ostream &operator<<(std::ostream &os, [[maybe_unused]] const struct ur_rect_offset_t params);
@@ -912,6 +913,9 @@ inline std::ostream &operator<<(std::ostream &os, enum ur_function_t value) {
     case UR_FUNCTION_DEVICE_GET_SELECTED:
         os << "UR_FUNCTION_DEVICE_GET_SELECTED";
         break;
+    case UR_FUNCTION_ADAPTER_SET_LOGGING_CALLBACK:
+        os << "UR_FUNCTION_ADAPTER_SET_LOGGING_CALLBACK";
+        break;
     default:
         os << "unknown enumerator";
         break;
@@ -1550,6 +1554,30 @@ inline std::ostream &operator<<(std::ostream &os, enum ur_result_t value) {
         break;
     case UR_RESULT_ERROR_UNKNOWN:
         os << "UR_RESULT_ERROR_UNKNOWN";
+        break;
+    default:
+        os << "unknown enumerator";
+        break;
+    }
+    return os;
+}
+///////////////////////////////////////////////////////////////////////////////
+/// @brief Print operator for the ur_log_level_t type
+/// @returns
+///     std::ostream &
+inline std::ostream &operator<<(std::ostream &os, enum ur_log_level_t value) {
+    switch (value) {
+    case UR_LOG_LEVEL_DEBUG:
+        os << "UR_LOG_LEVEL_DEBUG";
+        break;
+    case UR_LOG_LEVEL_INFO:
+        os << "UR_LOG_LEVEL_INFO";
+        break;
+    case UR_LOG_LEVEL_WARN:
+        os << "UR_LOG_LEVEL_WARN";
+        break;
+    case UR_LOG_LEVEL_ERR:
+        os << "UR_LOG_LEVEL_ERR";
         break;
     default:
         os << "unknown enumerator";
@@ -12248,6 +12276,43 @@ inline std::ostream &operator<<(std::ostream &os, [[maybe_unused]] const struct 
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+/// @brief Print operator for the ur_adapter_set_logging_callback_params_t type
+/// @returns
+///     std::ostream &
+inline std::ostream &operator<<(std::ostream &os, [[maybe_unused]] const struct ur_adapter_set_logging_callback_params_t *params) {
+
+    os << ".phAdapters = {";
+    for (size_t i = 0; *(params->pphAdapters) != NULL && i < *params->pNumAdapters; ++i) {
+        if (i != 0) {
+            os << ", ";
+        }
+
+        ur::details::printPtr(os,
+                              (*(params->pphAdapters))[i]);
+    }
+    os << "}";
+
+    os << ", ";
+    os << ".NumAdapters = ";
+
+    os << *(params->pNumAdapters);
+
+    os << ", ";
+    os << ".pfnLogger = ";
+
+    os << reinterpret_cast<void *>(
+        *(params->ppfnLogger));
+
+    os << ", ";
+    os << ".pUserData = ";
+
+    ur::details::printPtr(os,
+                          *(params->ppUserData));
+
+    return os;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 /// @brief Print operator for the ur_enqueue_kernel_launch_params_t type
 /// @returns
 ///     std::ostream &
@@ -16864,6 +16929,9 @@ inline ur_result_t UR_APICALL printFunctionParams(std::ostream &os, ur_function_
     } break;
     case UR_FUNCTION_ADAPTER_GET_INFO: {
         os << (const struct ur_adapter_get_info_params_t *)params;
+    } break;
+    case UR_FUNCTION_ADAPTER_SET_LOGGING_CALLBACK: {
+        os << (const struct ur_adapter_set_logging_callback_params_t *)params;
     } break;
     case UR_FUNCTION_ENQUEUE_KERNEL_LAUNCH: {
         os << (const struct ur_enqueue_kernel_launch_params_t *)params;

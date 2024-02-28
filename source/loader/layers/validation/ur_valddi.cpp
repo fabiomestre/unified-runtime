@@ -199,6 +199,39 @@ __urdlllocal ur_result_t UR_APICALL urAdapterGetInfo(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+/// @brief Intercept function for urAdapterSetLoggingCallback
+__urdlllocal ur_result_t UR_APICALL urAdapterSetLoggingCallback(
+    ur_adapter_handle_t *
+        phAdapters, ///< [in][range(0, NumAdapters)] array of adapters where the callback will
+                    ///< be set.
+    uint32_t NumAdapters, ///< [in] number of adapters pointed to by phAdapters.
+    ur_logger_callback_t
+        pfnLogger, ///< [in][optional] Function pointer to the callback function that will
+                   ///< process the warning messages.
+                   ///< If set to nullptr, the callback function will be unset."
+    void *
+        pUserData ///< [in][out][optional] pointer to data to be passed to the callback.
+) {
+    auto pfnAdapterSetLoggingCallback =
+        context.urDdiTable.Global.pfnAdapterSetLoggingCallback;
+
+    if (nullptr == pfnAdapterSetLoggingCallback) {
+        return UR_RESULT_ERROR_UNINITIALIZED;
+    }
+
+    if (context.enableParameterValidation) {
+        if (NULL == phAdapters) {
+            return UR_RESULT_ERROR_INVALID_NULL_POINTER;
+        }
+    }
+
+    ur_result_t result = pfnAdapterSetLoggingCallback(phAdapters, NumAdapters,
+                                                      pfnLogger, pUserData);
+
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 /// @brief Intercept function for urPlatformGet
 __urdlllocal ur_result_t UR_APICALL urPlatformGet(
     ur_adapter_handle_t *
@@ -9245,6 +9278,11 @@ UR_DLLEXPORT ur_result_t UR_APICALL urGetGlobalProcAddrTable(
 
     dditable.pfnAdapterGetInfo = pDdiTable->pfnAdapterGetInfo;
     pDdiTable->pfnAdapterGetInfo = ur_validation_layer::urAdapterGetInfo;
+
+    dditable.pfnAdapterSetLoggingCallback =
+        pDdiTable->pfnAdapterSetLoggingCallback;
+    pDdiTable->pfnAdapterSetLoggingCallback =
+        ur_validation_layer::urAdapterSetLoggingCallback;
 
     return result;
 }

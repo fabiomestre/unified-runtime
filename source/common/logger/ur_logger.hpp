@@ -25,22 +25,26 @@ inline void init(std::string name) { get_logger(std::move(name)); }
 
 template <typename... Args>
 inline void debug(const char *format, Args &&...args) {
-    get_logger().log(logger::Level::DEBUG, format, std::forward<Args>(args)...);
+    get_logger().log(ur_log_level_t::UR_LOG_LEVEL_DEBUG, format,
+                     std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 inline void info(const char *format, Args &&...args) {
-    get_logger().log(logger::Level::INFO, format, std::forward<Args>(args)...);
+    get_logger().log(ur_log_level_t::UR_LOG_LEVEL_INFO, format,
+                     std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 inline void warning(const char *format, Args &&...args) {
-    get_logger().log(logger::Level::WARN, format, std::forward<Args>(args)...);
+    get_logger().log(ur_log_level_t::UR_LOG_LEVEL_WARN, format,
+                     std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 inline void error(const char *format, Args &&...args) {
-    get_logger().log(logger::Level::ERR, format, std::forward<Args>(args)...);
+    get_logger().log(ur_log_level_t::UR_LOG_LEVEL_ERR, format,
+                     std::forward<Args>(args)...);
 }
 
 template <typename... Args>
@@ -51,32 +55,32 @@ inline void always(const char *format, Args &&...args) {
 template <typename... Args>
 inline void debug(const logger::LegacyMessage &p, const char *format,
                   Args &&...args) {
-    get_logger().log(p, logger::Level::DEBUG, format,
+    get_logger().log(p, ur_log_level_t::UR_LOG_LEVEL_DEBUG, format,
                      std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 inline void info(logger::LegacyMessage p, const char *format, Args &&...args) {
-    get_logger().log(p, logger::Level::INFO, format,
+    get_logger().log(p, ur_log_level_t::UR_LOG_LEVEL_INFO, format,
                      std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 inline void warning(logger::LegacyMessage p, const char *format,
                     Args &&...args) {
-    get_logger().log(p, logger::Level::WARN, format,
+    get_logger().log(p, ur_log_level_t::UR_LOG_LEVEL_WARN, format,
                      std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 inline void error(logger::LegacyMessage p, const char *format, Args &&...args) {
-    get_logger().log(p, logger::Level::ERR, format,
+    get_logger().log(p, ur_log_level_t::UR_LOG_LEVEL_ERR, format,
                      std::forward<Args>(args)...);
 }
 
-inline void setLevel(logger::Level level) { get_logger().setLevel(level); }
+inline void setLevel(ur_log_level_t level) { get_logger().setLevel(level); }
 
-inline void setFlushLevel(logger::Level level) {
+inline void setFlushLevel(ur_log_level_t level) {
     get_logger().setFlushLevel(level);
 }
 
@@ -109,11 +113,9 @@ inline Logger create_logger(std::string logger_name, bool skip_prefix) {
     std::transform(logger_name.begin(), logger_name.end(), logger_name.begin(),
                    ::toupper);
     std::stringstream env_var_name;
-    const auto default_level = logger::Level::QUIET;
-    const auto default_flush_level = logger::Level::ERR;
     const std::string default_output = "stderr";
-    auto level = default_level;
-    auto flush_level = default_flush_level;
+    auto level = ur_log_level_t::UR_LOG_LEVEL_ERR;
+    auto flush_level = ur_log_level_t::UR_LOG_LEVEL_ERR;
     std::unique_ptr<logger::Sink> sink;
 
     env_var_name << "UR_LOG_" << logger_name;

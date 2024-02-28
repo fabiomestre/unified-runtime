@@ -221,6 +221,7 @@ typedef enum ur_function_t {
     UR_FUNCTION_COMMAND_BUFFER_GET_INFO_EXP = 218,                             ///< Enumerator for ::urCommandBufferGetInfoExp
     UR_FUNCTION_COMMAND_BUFFER_COMMAND_GET_INFO_EXP = 219,                     ///< Enumerator for ::urCommandBufferCommandGetInfoExp
     UR_FUNCTION_DEVICE_GET_SELECTED = 220,                                     ///< Enumerator for ::urDeviceGetSelected
+    UR_FUNCTION_ADAPTER_SET_LOGGING_CALLBACK = 221,                            ///< Enumerator for ::urAdapterSetLoggingCallback
     /// @cond
     UR_FUNCTION_FORCE_UINT32 = 0x7fffffff
     /// @endcond
@@ -501,6 +502,25 @@ typedef enum ur_result_t {
     /// @endcond
 
 } ur_result_t;
+
+///////////////////////////////////////////////////////////////////////////////
+/// @brief Describes the type of a Unified Runtime log message.
+typedef enum ur_log_level_t {
+    UR_LOG_LEVEL_DEBUG = 0, ///< A debug message. Typically contains information that is mostly useful
+                            ///< to help debugging unified runtime behaviour.
+    UR_LOG_LEVEL_INFO = 1,  ///< An info message. Contains information about successful operations.
+    UR_LOG_LEVEL_WARN = 2,  ///< A warning message. These messages might contain information about
+                            ///< situations where unified
+                            ///< runtime might not have behaved as expected."
+    UR_LOG_LEVEL_ERR = 3,   ///< An error message. Unified runtime has encountered an error that
+                            ///< prevented it from performing a certain operation.
+                            ///< In the case of adapter errors, it will also return an error code as
+                            ///< the return value from the entrypoint."
+    /// @cond
+    UR_LOG_LEVEL_FORCE_UINT32 = 0x7fffffff
+    /// @endcond
+
+} ur_log_level_t;
 
 ///////////////////////////////////////////////////////////////////////////////
 /// @brief Base for all properties types
@@ -962,6 +982,46 @@ urAdapterGetInfo(
                                   ///< to return the info then the ::UR_RESULT_ERROR_INVALID_SIZE error is
                                   ///< returned and pPropValue is not used.
     size_t *pPropSizeRet          ///< [out][optional] pointer to the actual number of bytes being queried by pPropValue.
+);
+
+///////////////////////////////////////////////////////////////////////////////
+/// @brief Callback function that processes adapter log messages.
+typedef void (*ur_logger_callback_t)(
+    ur_adapter_handle_t hAdapter, ///< [in] handle of the adapter
+    const char *message,          ///< [in] the log message set by the unified runtime adapter.
+    ur_log_level_t logLevel,      ///< [in] The log message type
+    void *pUserData               ///< [in][optional] pointer to user data to be passed to the callback.
+);
+
+///////////////////////////////////////////////////////////////////////////////
+/// @brief Set a function callback for use by the adapters when logging messages.
+///
+/// @details
+///     - Sets a function callback that will be used by the adapters when
+///       logging messages.
+///     - The callback will be called for every message logged by the adapters
+///       specified in `phAdapters`.
+///     - Sending log messages is optional and adapters are not required to
+///       implement this feature for any entrypoint.
+///     - The application can disable log messages at runtime by setting the
+///       environment variable `UR_DISABLE_LOGS`.
+///
+/// @returns
+///     - ::UR_RESULT_SUCCESS
+///     - ::UR_RESULT_ERROR_UNINITIALIZED
+///     - ::UR_RESULT_ERROR_DEVICE_LOST
+///     - ::UR_RESULT_ERROR_ADAPTER_SPECIFIC
+///     - ::UR_RESULT_ERROR_INVALID_NULL_POINTER
+///         + `NULL == phAdapters`
+UR_APIEXPORT ur_result_t UR_APICALL
+urAdapterSetLoggingCallback(
+    ur_adapter_handle_t *phAdapters, ///< [in][range(0, NumAdapters)] array of adapters where the callback will
+                                     ///< be set.
+    uint32_t NumAdapters,            ///< [in] number of adapters pointed to by phAdapters.
+    ur_logger_callback_t pfnLogger,  ///< [in][optional] Function pointer to the callback function that will
+                                     ///< process the warning messages.
+                                     ///< If set to nullptr, the callback function will be unset."
+    void *pUserData                  ///< [in][out][optional] pointer to data to be passed to the callback.
 );
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -10012,6 +10072,17 @@ typedef struct ur_adapter_get_info_params_t {
     void **ppPropValue;
     size_t **ppPropSizeRet;
 } ur_adapter_get_info_params_t;
+
+///////////////////////////////////////////////////////////////////////////////
+/// @brief Function parameters for urAdapterSetLoggingCallback
+/// @details Each entry is a pointer to the parameter passed to the function;
+///     allowing the callback the ability to modify the parameter's value
+typedef struct ur_adapter_set_logging_callback_params_t {
+    ur_adapter_handle_t **pphAdapters;
+    uint32_t *pNumAdapters;
+    ur_logger_callback_t *ppfnLogger;
+    void **ppUserData;
+} ur_adapter_set_logging_callback_params_t;
 
 ///////////////////////////////////////////////////////////////////////////////
 /// @brief Function parameters for urEnqueueKernelLaunch

@@ -29,7 +29,7 @@ public:
     this->ostream = &std::cerr;
   }
 
-  virtual void print([[maybe_unused]] logger::Level level,
+  virtual void print([[maybe_unused]] ur_log_level_t level,
                      const std::string &msg) override {
     std::cerr << msg << std::endl;
   }
@@ -108,5 +108,12 @@ UR_APIEXPORT ur_result_t UR_APICALL urAdapterGetInfo(ur_adapter_handle_t,
     return UR_RESULT_ERROR_INVALID_ENUMERATION;
   }
 
+  return UR_RESULT_SUCCESS;
+}
+
+UR_APIEXPORT ur_result_t UR_APICALL
+urAdapterSetLoggingCallback(ur_adapter_handle_t *, uint32_t,
+                            ur_logger_callback_t pfnLogger, void *pUserData) {
+  adapter.logger.setLoggingCallback(&adapter, pfnLogger, pUserData);
   return UR_RESULT_SUCCESS;
 }

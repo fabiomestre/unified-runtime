@@ -8,4 +8,5 @@ add_conformance_test(adapter
     urAdapterGetInfo.cpp
     urAdapterGetLastError.cpp
     urAdapterRetain.cpp
-    urAdapterRelease.cpp)
+    urAdapterRelease.cpp
+    urAdapterSetLoggingCallback.cpp)

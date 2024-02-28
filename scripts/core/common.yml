@@ -278,6 +278,23 @@ etors:
       value: "0x7ffffffe"
       desc: "Unknown or internal error"
 --- #--------------------------------------------------------------------------
+type: enum
+desc: "Describes the type of a Unified Runtime log message."
+name: $x_log_level_t
+etors:
+  - name: DEBUG
+    desc: "A debug message. Typically contains information that is mostly useful to help debugging unified runtime behaviour."
+  - name: INFO
+    desc: "An info message. Contains information about successful operations."
+  - name: WARN
+    desc: |
+      A warning message. These messages might contain information about situations where unified 
+      runtime might not have behaved as expected."
+  - name: ERR
+    desc: |
+      An error message. Unified runtime has encountered an error that prevented it from performing a certain operation. 
+      In the case of adapter errors, it will also return an error code as the return value from the entrypoint."
+--- #--------------------------------------------------------------------------
 type: struct
 desc: "Base for all properties types"
 name: $x_base_properties_t

@@ -189,6 +189,42 @@ __urdlllocal ur_result_t UR_APICALL urAdapterGetInfo(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+/// @brief Intercept function for urAdapterSetLoggingCallback
+__urdlllocal ur_result_t UR_APICALL urAdapterSetLoggingCallback(
+    ur_adapter_handle_t *
+        phAdapters, ///< [in][range(0, NumAdapters)] array of adapters where the callback will
+                    ///< be set.
+    uint32_t NumAdapters, ///< [in] number of adapters pointed to by phAdapters.
+    ur_logger_callback_t
+        pfnLogger, ///< [in][optional] Function pointer to the callback function that will
+                   ///< process the warning messages.
+                   ///< If set to nullptr, the callback function will be unset."
+    void *
+        pUserData ///< [in][out][optional] pointer to data to be passed to the callback.
+) {
+    ur_result_t result = UR_RESULT_SUCCESS;
+
+    if (phAdapters == nullptr) {
+        return result;
+    }
+
+    for (uint32_t adapter_index = 0; adapter_index < NumAdapters;
+         adapter_index++) {
+        auto dditable =
+            reinterpret_cast<ur_adapter_object_t *>(phAdapters[adapter_index])
+                ->dditable;
+
+        auto pfnAdapterSetLoggingCallback =
+            dditable->ur.Global.pfnAdapterSetLoggingCallback;
+
+        pfnAdapterSetLoggingCallback(&phAdapters[adapter_index], 1, pfnLogger,
+                                     pUserData);
+    }
+
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 /// @brief Intercept function for urPlatformGet
 __urdlllocal ur_result_t UR_APICALL urPlatformGet(
     ur_adapter_handle_t *
@@ -7938,6 +7974,8 @@ UR_DLLEXPORT ur_result_t UR_APICALL urGetGlobalProcAddrTable(
             pDdiTable->pfnAdapterGetLastError =
                 ur_loader::urAdapterGetLastError;
             pDdiTable->pfnAdapterGetInfo = ur_loader::urAdapterGetInfo;
+            pDdiTable->pfnAdapterSetLoggingCallback =
+                ur_loader::urAdapterSetLoggingCallback;
         } else {
             // return pointers directly to platform's DDIs
             *pDdiTable =
