@@ -39,6 +39,7 @@ using LoaderAdapterSetLoggingCallbackTest = LoaderAdapterTest;
 
 TEST_F(LoaderAdapterSetLoggingCallbackTest, Success) {
     ASSERT_SUCCESS(urAdapterSetLoggingCallback(adapters.data(), adapterCount,
+                                               UR_LOG_LEVEL_DEBUG,
                                                loggerCallback, &data));
     urAdapterGet(adapterCount, adapters.data(), nullptr);
     ASSERT_FALSE(callbackError);

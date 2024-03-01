@@ -1020,6 +1020,7 @@ typedef ur_result_t(UR_APICALL *ur_pfnAdapterGetInfo_t)(
 typedef ur_result_t(UR_APICALL *ur_pfnAdapterSetLoggingCallback_t)(
     ur_adapter_handle_t *,
     uint32_t,
+    ur_log_level_t,
     ur_logger_callback_t,
     void *);
 

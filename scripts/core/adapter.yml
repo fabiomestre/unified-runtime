@@ -202,6 +202,10 @@ details:
   - "The callback will be called for every message logged by the adapters specified in `phAdapters`."
   - "Sending log messages is optional and adapters are not required to implement this feature for any entrypoint."
   - "The application can disable log messages at runtime by setting the environment variable `UR_DISABLE_LOGS`."
+  - "Calling this function again with the same adapter handle will replace the previous values."
+  - "To unset the callback, use `nullptr` as the value for `pfnLogger`."
+  - "The application may call this function from simultaneous threads."
+  - "The implementation of this function should be thread-safe."
 class: $x
 name: AdapterSetLoggingCallback
 decl: static
@@ -212,11 +216,16 @@ params:
   - type: "uint32_t"
     name: NumAdapters
     desc: "[in] number of adapters pointed to by phAdapters."
+  - type: $x_log_level_t
+    name: levelThreshold
+    desc: |
+          [in] The minimum log level that will activate pfnLogger.
+          For example, if logLevel is $X_LOG_LEVEL_INFO, all messages except for $X_LOG_LEVEL_DEBUG will trigger a call to the callback.
   - type: $x_logger_callback_t
     name: pfnLogger
     desc: |
           [in][optional] Function pointer to the callback function that will process the warning messages.
-          If set to nullptr, the callback function will be unset."
+          If set to nullptr, the callback function will be unset.
   - type: void*
     name: pUserData
     desc: "[in][out][optional] pointer to data to be passed to the callback."

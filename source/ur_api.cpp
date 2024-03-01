@@ -421,6 +421,11 @@ ur_result_t UR_APICALL urAdapterGetInfo(
 ///       implement this feature for any entrypoint.
 ///     - The application can disable log messages at runtime by setting the
 ///       environment variable `UR_DISABLE_LOGS`.
+///     - Calling this function again with the same adapter handle will replace
+///       the previous values.
+///     - To unset the callback, use `nullptr` as the value for `pfnLogger`.
+///     - The application may call this function from simultaneous threads.
+///     - The implementation of this function should be thread-safe.
 ///
 /// @returns
 ///     - ::UR_RESULT_SUCCESS
@@ -429,15 +434,21 @@ ur_result_t UR_APICALL urAdapterGetInfo(
 ///     - ::UR_RESULT_ERROR_ADAPTER_SPECIFIC
 ///     - ::UR_RESULT_ERROR_INVALID_NULL_POINTER
 ///         + `NULL == phAdapters`
+///     - ::UR_RESULT_ERROR_INVALID_ENUMERATION
+///         + `::UR_LOG_LEVEL_ERR < levelThreshold`
 ur_result_t UR_APICALL urAdapterSetLoggingCallback(
     ur_adapter_handle_t *
         phAdapters, ///< [in][range(0, NumAdapters)] array of adapters where the callback will
                     ///< be set.
     uint32_t NumAdapters, ///< [in] number of adapters pointed to by phAdapters.
+    ur_log_level_t
+        levelThreshold, ///< [in] The minimum log level that will activate pfnLogger.
+    ///< For example, if logLevel is ::UR_LOG_LEVEL_INFO, all messages except
+    ///< for ::UR_LOG_LEVEL_DEBUG will trigger a call to the callback.
     ur_logger_callback_t
         pfnLogger, ///< [in][optional] Function pointer to the callback function that will
                    ///< process the warning messages.
-                   ///< If set to nullptr, the callback function will be unset."
+                   ///< If set to nullptr, the callback function will be unset.
     void *
         pUserData ///< [in][out][optional] pointer to data to be passed to the callback.
 ) {

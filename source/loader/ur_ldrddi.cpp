@@ -195,10 +195,14 @@ __urdlllocal ur_result_t UR_APICALL urAdapterSetLoggingCallback(
         phAdapters, ///< [in][range(0, NumAdapters)] array of adapters where the callback will
                     ///< be set.
     uint32_t NumAdapters, ///< [in] number of adapters pointed to by phAdapters.
+    ur_log_level_t
+        levelThreshold, ///< [in] The minimum log level that will activate pfnLogger.
+    ///< For example, if logLevel is ::UR_LOG_LEVEL_INFO, all messages except
+    ///< for ::UR_LOG_LEVEL_DEBUG will trigger a call to the callback.
     ur_logger_callback_t
         pfnLogger, ///< [in][optional] Function pointer to the callback function that will
                    ///< process the warning messages.
-                   ///< If set to nullptr, the callback function will be unset."
+                   ///< If set to nullptr, the callback function will be unset.
     void *
         pUserData ///< [in][out][optional] pointer to data to be passed to the callback.
 ) {
@@ -217,8 +221,8 @@ __urdlllocal ur_result_t UR_APICALL urAdapterSetLoggingCallback(
         auto pfnAdapterSetLoggingCallback =
             dditable->ur.Global.pfnAdapterSetLoggingCallback;
 
-        pfnAdapterSetLoggingCallback(&phAdapters[adapter_index], 1, pfnLogger,
-                                     pUserData);
+        pfnAdapterSetLoggingCallback(&phAdapters[adapter_index], 1,
+                                     levelThreshold, pfnLogger, pUserData);
     }
 
     return result;

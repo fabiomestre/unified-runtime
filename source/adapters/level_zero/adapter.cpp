@@ -297,9 +297,11 @@ UR_APIEXPORT ur_result_t UR_APICALL urAdapterGetInfo(ur_adapter_handle_t,
   return UR_RESULT_SUCCESS;
 }
 
-UR_APIEXPORT ur_result_t UR_APICALL
-urAdapterSetLoggingCallback(ur_adapter_handle_t *, uint32_t,
-                            ur_logger_callback_t pfnLogger, void *pUserData) {
-  Adapter.logger.setLoggingCallback(&Adapter, pfnLogger, pUserData);
+UR_APIEXPORT ur_result_t UR_APICALL urAdapterSetLoggingCallback(
+    ur_adapter_handle_t *, uint32_t, ur_log_level_t levelThreshold,
+    ur_logger_callback_t pfnLogger, void *pUserData) {
+  std::lock_guard<std::mutex> Guard(Adapter.Mutex);
+  Adapter.logger.setLoggingCallback(&Adapter, levelThreshold, pfnLogger,
+                                    pUserData);
   return UR_RESULT_SUCCESS;
 }

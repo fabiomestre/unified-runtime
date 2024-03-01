@@ -19,8 +19,8 @@ void loggerCallback(ur_adapter_handle_t, const char *, ur_log_level_t,
 }
 
 TEST_F(urAdapterSetLoggingCallbackTest, Success) {
-    ASSERT_SUCCESS(urAdapterSetLoggingCallback(adapters.data(), 1,
-                                               loggerCallback, nullptr));
+    ASSERT_SUCCESS(urAdapterSetLoggingCallback(
+        adapters.data(), 1, UR_LOG_LEVEL_DEBUG, loggerCallback, nullptr));
     ASSERT_FALSE(callbackError);
 }
 
@@ -30,13 +30,22 @@ TEST_F(urAdapterSetLoggingCallbackTest, Success) {
 TEST_F(urAdapterSetLoggingCallbackTest, SuccessUserData) {
 
     void *callbackUserData = reinterpret_cast<void *>(&data);
-    ASSERT_SUCCESS(urAdapterSetLoggingCallback(
-        adapters.data(), 1, loggerCallback, callbackUserData));
+    ASSERT_SUCCESS(
+        urAdapterSetLoggingCallback(adapters.data(), 1, UR_LOG_LEVEL_DEBUG,
+                                    loggerCallback, callbackUserData));
     ASSERT_FALSE(callbackError);
 }
 
 TEST_F(urAdapterSetLoggingCallbackTest, NullCallback) {
-    ASSERT_SUCCESS(
-        urAdapterSetLoggingCallback(adapters.data(), 1, nullptr, nullptr));
+    ASSERT_SUCCESS(urAdapterSetLoggingCallback(
+        adapters.data(), 1, UR_LOG_LEVEL_DEBUG, nullptr, nullptr));
+    ASSERT_FALSE(callbackError);
+}
+
+TEST_F(urAdapterSetLoggingCallbackTest, InvalidLevelThreshold) {
+    ASSERT_EQ_RESULT(UR_RESULT_ERROR_INVALID_ENUMERATION,
+                     urAdapterSetLoggingCallback(adapters.data(), 1,
+                                                 UR_LOG_LEVEL_FORCE_UINT32,
+                                                 nullptr, nullptr));
     ASSERT_FALSE(callbackError);
 }

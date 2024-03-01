@@ -12298,6 +12298,11 @@ inline std::ostream &operator<<(std::ostream &os, [[maybe_unused]] const struct 
     os << *(params->pNumAdapters);
 
     os << ", ";
+    os << ".levelThreshold = ";
+
+    os << *(params->plevelThreshold);
+
+    os << ", ";
     os << ".pfnLogger = ";
 
     os << reinterpret_cast<void *>(

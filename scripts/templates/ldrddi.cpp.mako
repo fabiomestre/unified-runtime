@@ -139,7 +139,7 @@ namespace ur_loader
 
                 auto ${th.make_pfn_name(n, tags, obj)} = dditable->${n}.${th.get_table_name(n, tags, obj)}.${th.make_pfn_name(n, tags, obj)};
 
-                ${th.make_pfn_name(n, tags, obj)}(&${obj['params'][0]['name']}[adapter_index], 1, ${obj['params'][2]['name']}, ${obj['params'][3]['name']});
+                ${th.make_pfn_name(n, tags, obj)}(&${obj['params'][0]['name']}[adapter_index], 1, ${obj['params'][2]['name']}, ${obj['params'][3]['name']}, ${obj['params'][4]['name']});
             }
 
         %else:

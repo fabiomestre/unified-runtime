@@ -11,8 +11,6 @@
 
 namespace logger {
 
-//enum class Level { DEBUG, INFO, WARN, ERR, QUIET };
-
 inline constexpr auto level_to_str(ur_log_level_t level) {
     switch (level) {
     case ur_log_level_t::UR_LOG_LEVEL_DEBUG:

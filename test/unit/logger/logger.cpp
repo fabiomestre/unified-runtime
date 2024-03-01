@@ -60,7 +60,7 @@ TEST_F(DefaultLoggerWithFileSink, SetLevelDebug) {
 }
 
 TEST_F(DefaultLoggerWithFileSink, SetLevelInfo) {
-    auto level = ur_log_level_t ::UR_LOG_LEVEL_DEBUG;
+    auto level = ur_log_level_t ::UR_LOG_LEVEL_INFO;
     logger->setLevel(level);
     logger->setFlushLevel(level);
     logger->info("Test message: {}", "success");

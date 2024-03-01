@@ -37,11 +37,11 @@ class Logger {
 
     /* Sets a callback that can be used to access logs at runtime. */
     void setLoggingCallback(ur_adapter_handle_t hAdapter,
+                            ur_log_level_t levelThreshold,
                             ur_logger_callback_t loggerCallback,
                             void *callbackUserData) {
-        this->loggerCallback = loggerCallback;
-        this->callbackUserData = callbackUserData;
-        this->hAdapter = hAdapter;
+        callbackParams = {hAdapter, levelThreshold, loggerCallback,
+                          callbackUserData};
     }
 
     template <typename... Args> void debug(const char *format, Args &&...args) {
@@ -114,8 +114,11 @@ class Logger {
     void log(const logger::LegacyMessage &p, ur_log_level_t level,
              const char *format, Args &&...args) {
 
-        if (loggerCallback) {
-            loggerCallback(hAdapter, p.message, level, callbackUserData);
+        if (callbackParams.loggerCallback &&
+            level >= callbackParams.levelThreshold) {
+            callbackParams.loggerCallback(callbackParams.hAdapter, p.message,
+                                          level,
+                                          callbackParams.callbackUserData);
         }
 
         if (!sink || quiet) {
@@ -143,9 +146,13 @@ class Logger {
     std::unique_ptr<logger::Sink> sink;
     bool isLegacySink = false;
     bool quiet = true;
-    ur_logger_callback_t loggerCallback = nullptr;
-    void *callbackUserData = nullptr;
-    ur_adapter_handle_t hAdapter = nullptr;
+
+    struct CallbackParams {
+        ur_adapter_handle_t hAdapter = nullptr;
+        ur_log_level_t levelThreshold = UR_LOG_LEVEL_DEBUG;
+        ur_logger_callback_t loggerCallback = nullptr;
+        void *callbackUserData = nullptr;
+    } callbackParams;
 };
 
 } // namespace logger
