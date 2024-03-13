@@ -322,7 +322,7 @@ ur_result_t UR_APICALL urAdapterRetain(
 /// * Implementations *must* store the message and error code in thread-local
 ///   storage prior to returning ::UR_RESULT_ERROR_ADAPTER_SPECIFIC.
 ///
-/// * The message and error code storage is will only be valid if a previously
+/// * The message and error code storage will only be valid if a previously
 ///   called entry-point returned ::UR_RESULT_ERROR_ADAPTER_SPECIFIC.
 ///
 /// * The memory pointed to by the C string returned in `ppMessage` is owned by
@@ -353,6 +353,8 @@ ur_result_t UR_APICALL urAdapterRetain(
 ///     - ::UR_RESULT_ERROR_INVALID_NULL_POINTER
 ///         + `NULL == ppMessage`
 ///         + `NULL == pError`
+///     - ::UR_RESULT_ERROR_OUT_OF_RESOURCES
+///     - ::UR_RESULT_ERROR_OUT_OF_HOST_MEMORY
 ur_result_t UR_APICALL urAdapterGetLastError(
     ur_adapter_handle_t hAdapter, ///< [in] handle of the adapter instance
     const char **
@@ -419,8 +421,6 @@ ur_result_t UR_APICALL urAdapterGetInfo(
 ///       specified in `phAdapters`.
 ///     - Sending log messages is optional and adapters are not required to
 ///       implement this feature for any entrypoint.
-///     - The application can disable log messages at runtime by setting the
-///       environment variable `UR_DISABLE_LOGS`.
 ///     - Calling this function again with the same adapter handle will replace
 ///       the previous values.
 ///     - To unset the callback, use `nullptr` as the value for `pfnLogger`.

@@ -489,8 +489,8 @@ typedef enum ur_result_t {
     UR_RESULT_ERROR_INVALID_HOST_PTR = 64,                                    ///< Invalid host pointer
     UR_RESULT_ERROR_INVALID_USM_SIZE = 65,                                    ///< Invalid USM size
     UR_RESULT_ERROR_OBJECT_ALLOCATION_FAILURE = 66,                           ///< Objection allocation failure
-    UR_RESULT_ERROR_ADAPTER_SPECIFIC = 67,                                    ///< An adapter specific warning/error has been reported and can be
-                                                                              ///< retrieved via the urPlatformGetLastError entry point.
+    UR_RESULT_ERROR_ADAPTER_SPECIFIC = 67,                                    ///< An adapter specific error has been reported and can be retrieved via
+                                                                              ///< the urAdapterGetLastError entry point.
     UR_RESULT_ERROR_LAYER_NOT_PRESENT = 68,                                   ///< A requested layer was not found by the loader.
     UR_RESULT_ERROR_INVALID_COMMAND_BUFFER_EXP = 0x1000,                      ///< Invalid Command-Buffer
     UR_RESULT_ERROR_INVALID_COMMAND_BUFFER_SYNC_POINT_EXP = 0x1001,           ///< Sync point is not valid for the command-buffer
@@ -890,7 +890,7 @@ urAdapterRetain(
 /// * Implementations *must* store the message and error code in thread-local
 ///   storage prior to returning ::UR_RESULT_ERROR_ADAPTER_SPECIFIC.
 ///
-/// * The message and error code storage is will only be valid if a previously
+/// * The message and error code storage will only be valid if a previously
 ///   called entry-point returned ::UR_RESULT_ERROR_ADAPTER_SPECIFIC.
 ///
 /// * The memory pointed to by the C string returned in `ppMessage` is owned by
@@ -921,6 +921,8 @@ urAdapterRetain(
 ///     - ::UR_RESULT_ERROR_INVALID_NULL_POINTER
 ///         + `NULL == ppMessage`
 ///         + `NULL == pError`
+///     - ::UR_RESULT_ERROR_OUT_OF_RESOURCES
+///     - ::UR_RESULT_ERROR_OUT_OF_HOST_MEMORY
 UR_APIEXPORT ur_result_t UR_APICALL
 urAdapterGetLastError(
     ur_adapter_handle_t hAdapter, ///< [in] handle of the adapter instance
@@ -1003,8 +1005,6 @@ typedef void (*ur_logger_callback_t)(
 ///       specified in `phAdapters`.
 ///     - Sending log messages is optional and adapters are not required to
 ///       implement this feature for any entrypoint.
-///     - The application can disable log messages at runtime by setting the
-///       environment variable `UR_DISABLE_LOGS`.
 ///     - Calling this function again with the same adapter handle will replace
 ///       the previous values.
 ///     - To unset the callback, use `nullptr` as the value for `pfnLogger`.

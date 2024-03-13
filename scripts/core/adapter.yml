@@ -83,7 +83,7 @@ details: |
     * Implementations *must* store the message and error code in thread-local
       storage prior to returning $X_RESULT_ERROR_ADAPTER_SPECIFIC.
 
-    * The message and error code storage is will only be valid if a previously
+    * The message and error code storage will only be valid if a previously
       called entry-point returned $X_RESULT_ERROR_ADAPTER_SPECIFIC.
 
     * The memory pointed to by the C string returned in `ppMessage` is owned by
@@ -121,6 +121,9 @@ params:
       desc: >
           [out] pointer to an integer where the adapter specific error code
           will be stored.
+returns:
+  - $X_RESULT_ERROR_OUT_OF_RESOURCES
+  - $X_RESULT_ERROR_OUT_OF_HOST_MEMORY
 --- #--------------------------------------------------------------------------
 type: enum
 desc: "Supported adapter info"
@@ -201,7 +204,6 @@ details:
   - "Sets a function callback that will be used by the adapters when logging messages."
   - "The callback will be called for every message logged by the adapters specified in `phAdapters`."
   - "Sending log messages is optional and adapters are not required to implement this feature for any entrypoint."
-  - "The application can disable log messages at runtime by setting the environment variable `UR_DISABLE_LOGS`."
   - "Calling this function again with the same adapter handle will replace the previous values."
   - "To unset the callback, use `nullptr` as the value for `pfnLogger`."
   - "The application may call this function from simultaneous threads."
