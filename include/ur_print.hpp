@@ -9954,6 +9954,12 @@ inline std::ostream &operator<<(std::ostream &os, const struct ur_exp_command_bu
                              (params.pNext));
 
     os << ", ";
+    os << ".hNewKernel = ";
+
+    ur::details::printPtr(os,
+                          (params.hNewKernel));
+
+    os << ", ";
     os << ".numNewMemObjArgs = ";
 
     os << (params.numNewMemObjArgs);
@@ -15950,6 +15956,23 @@ inline std::ostream &operator<<(std::ostream &os, [[maybe_unused]] const struct 
 
     ur::details::printPtr(os,
                           *(params->ppLocalWorkSize));
+
+    os << ", ";
+    os << ".numKernelAlternatives = ";
+
+    os << *(params->pnumKernelAlternatives);
+
+    os << ", ";
+    os << ".phKernelAlternatives = {";
+    for (size_t i = 0; *(params->pphKernelAlternatives) != NULL && i < *params->pnumKernelAlternatives; ++i) {
+        if (i != 0) {
+            os << ", ";
+        }
+
+        ur::details::printPtr(os,
+                              (*(params->pphKernelAlternatives))[i]);
+    }
+    os << "}";
 
     os << ", ";
     os << ".numSyncPointsInWaitList = ";

@@ -733,6 +733,8 @@ ur_result_t urCommandBufferAppendKernelLaunchExp(
     ur_exp_command_buffer_handle_t CommandBuffer, ur_kernel_handle_t Kernel,
     uint32_t WorkDim, const size_t *GlobalWorkOffset,
     const size_t *GlobalWorkSize, const size_t *LocalWorkSize,
+    uint32_t /*numKernelAlternatives*/,
+    ur_kernel_handle_t * /*phKernelAlternatives*/,
     uint32_t NumSyncPointsInWaitList,
     const ur_exp_command_buffer_sync_point_t *SyncPointWaitList,
     ur_exp_command_buffer_sync_point_t *RetSyncPoint,
