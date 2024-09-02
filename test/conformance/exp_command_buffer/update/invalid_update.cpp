@@ -3,7 +3,7 @@
 // See LICENSE.TXT
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
-#include "fixtures.h"
+#include "../fixtures.h"
 #include <cstring>
 
 // Negative tests that correct error codes are thrown on invalid update usage.
