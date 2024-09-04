@@ -5,12 +5,12 @@
 
 if (UR_BUILD_ADAPTER_CUDA)
   add_conformance_test_with_kernels_environment(
-          exp_enqueue_native
-          enqueue_native_cuda.cpp
+    exp_enqueue_native
+    enqueue_native_cuda.cpp
   )
   target_include_directories(test-exp_enqueue_native PRIVATE
-          ${PROJECT_SOURCE_DIR}/source
-          ${PROJECT_SOURCE_DIR}/source/adapters/cuda
+    ${PROJECT_SOURCE_DIR}/source
+    ${PROJECT_SOURCE_DIR}/source/adapters/cuda
   )
   target_link_libraries(test-exp_enqueue_native PRIVATE cudadrv)
 endif()

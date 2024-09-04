@@ -16,6 +16,7 @@
 #include "logger/ur_logger.hpp"
 #include <cuda.h>
 #include <memory>
+#include <unordered_set>
 
 // Trace an internal UR call
 #define UR_TRACE(Call)                                                         \
@@ -44,7 +45,8 @@ struct ur_exp_command_buffer_command_handle_t_ {
       ur_exp_command_buffer_handle_t CommandBuffer, ur_kernel_handle_t Kernel,
       CUgraphNode Node, CUDA_KERNEL_NODE_PARAMS Params, uint32_t WorkDim,
       const size_t *GlobalWorkOffsetPtr, const size_t *GlobalWorkSizePtr,
-      const size_t *LocalWorkSizePtr);
+      const size_t *LocalWorkSizePtr, uint32_t NumKernelAlternatives,
+      ur_kernel_handle_t *KernelAlternatives);
 
   void setGlobalOffset(const size_t *GlobalWorkOffsetPtr) {
     const size_t CopySize = sizeof(size_t) * WorkDim;
@@ -96,7 +98,14 @@ struct ur_exp_command_buffer_command_handle_t_ {
   }
 
   ur_exp_command_buffer_handle_t CommandBuffer;
+
+  /* The currently active kernel handle for this command */
   ur_kernel_handle_t Kernel;
+
+  /* Set of all the kernel handles that can be used when updating this command
+   */
+  std::unordered_set<ur_kernel_handle_t> ValidKernelHandles;
+
   CUgraphNode Node;
   CUDA_KERNEL_NODE_PARAMS Params;
 

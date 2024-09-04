@@ -6381,6 +6381,9 @@ ur_result_t UR_APICALL urCommandBufferFinalizeExp(
 ///     - ::UR_RESULT_ERROR_INVALID_WORK_DIMENSION
 ///     - ::UR_RESULT_ERROR_INVALID_WORK_GROUP_SIZE
 ///     - ::UR_RESULT_ERROR_INVALID_VALUE
+///         + `phKernelAlternatives == NULL && numKernelAlternatives > 0`
+///         + `phKernelAlternatives != NULL && numKernelAlternatives == 0`
+///         + If `phKernelAlternatives` contains `hKernel`
 ///     - ::UR_RESULT_ERROR_INVALID_COMMAND_BUFFER_SYNC_POINT_EXP
 ///     - ::UR_RESULT_ERROR_INVALID_COMMAND_BUFFER_SYNC_POINT_WAIT_LIST_EXP
 ///         + `pSyncPointWaitList == NULL && numSyncPointsInWaitList > 0`
@@ -6400,11 +6403,12 @@ ur_result_t UR_APICALL urCommandBufferAppendKernelLaunchExp(
         pLocalWorkSize, ///< [in][optional] Local work size to use when executing kernel.
     uint32_t
         numKernelAlternatives, ///< [in] The number of kernel alternatives provided in
-                               ///< pKernelAlternatives.
+                               ///< phKernelAlternatives.
     ur_kernel_handle_t *
         phKernelAlternatives, ///< [in][optional][range(0, numKernelAlternatives)] List of kernels
     ///< handles that might be used to update the kernel in this
-    ///< command after the command-buffer is finalized.
+    ///< command after the command-buffer is finalized. It's invalid to specify
+    ///< the default kernel `hKernel` as part of this list.
     uint32_t
         numSyncPointsInWaitList, ///< [in] The number of sync points in the provided dependency list.
     const ur_exp_command_buffer_sync_point_t *
@@ -7034,6 +7038,7 @@ ur_result_t UR_APICALL urCommandBufferReleaseCommandExp(
 ///     - ::UR_RESULT_ERROR_INVALID_WORK_DIMENSION
 ///     - ::UR_RESULT_ERROR_INVALID_WORK_GROUP_SIZE
 ///     - ::UR_RESULT_ERROR_INVALID_VALUE
+///         + If `pUpdateKernelLaunch->hNewKernel` was not passed to the `hKernel` or `phKernelAlternatives` parameters of ::urCommandBufferAppendKernelLaunchExp when this command was created.
 ///     - ::UR_RESULT_ERROR_OUT_OF_HOST_MEMORY
 ///     - ::UR_RESULT_ERROR_OUT_OF_RESOURCES
 ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(
