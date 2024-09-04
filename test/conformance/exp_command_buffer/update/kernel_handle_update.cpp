@@ -7,9 +7,6 @@
 #include "uur/raii.h"
 #include <cstring>
 
-// Tests that it is possible to update the kernel handle of a command-buffer node.
-// This test launches a Saxpy kernel using a command-buffer and then updates the
-// node with a completely different kernel that does a fill 2D operation.
 struct TestKernel {
 
     TestKernel(std::string Name, ur_platform_handle_t Platform,
@@ -247,6 +244,9 @@ struct urCommandBufferKernelHandleUpdateTest
 
 UUR_INSTANTIATE_DEVICE_TEST_SUITE_P(urCommandBufferKernelHandleUpdateTest);
 
+/* Tests that it is possible to update the kernel handle of a command-buffer node.
+ * This test launches a Saxpy kernel using a command-buffer and then updates the
+ * node with a completely different kernel that does a fill 2D operation. */
 TEST_P(urCommandBufferKernelHandleUpdateTest, Success) {
 
     std::vector<ur_kernel_handle_t> KernelAlternatives = {

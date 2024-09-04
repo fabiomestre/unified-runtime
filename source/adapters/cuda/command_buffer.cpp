@@ -879,7 +879,7 @@ UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(
     return UR_RESULT_ERROR_INVALID_OPERATION;
   }
 
-  if (auto NewWorkDim = pUpdateKernelLaunch->newWorkDim) {
+  if (pUpdateKernelLaunch->newWorkDim) {
 
     // Error If Local size and not global size
     if ((pUpdateKernelLaunch->pNewLocalWorkSize != nullptr) &&

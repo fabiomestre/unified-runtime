@@ -6383,7 +6383,7 @@ ur_result_t UR_APICALL urCommandBufferFinalizeExp(
 ///     - ::UR_RESULT_ERROR_INVALID_VALUE
 ///         + `phKernelAlternatives == NULL && numKernelAlternatives > 0`
 ///         + `phKernelAlternatives != NULL && numKernelAlternatives == 0`
-///         + `phKernelAlternatives` contains `hKernel`
+///         + If `phKernelAlternatives` contains `hKernel`
 ///     - ::UR_RESULT_ERROR_INVALID_COMMAND_BUFFER_SYNC_POINT_EXP
 ///     - ::UR_RESULT_ERROR_INVALID_COMMAND_BUFFER_SYNC_POINT_WAIT_LIST_EXP
 ///         + `pSyncPointWaitList == NULL && numSyncPointsInWaitList > 0`

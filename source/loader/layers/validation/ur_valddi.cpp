@@ -8105,10 +8105,6 @@ __urdlllocal ur_result_t UR_APICALL urCommandBufferAppendKernelLaunchExp(
             return UR_RESULT_ERROR_INVALID_VALUE;
         }
 
-        if (phKernelAlternatives` contains `hKernel) {
-            return UR_RESULT_ERROR_INVALID_VALUE;
-        }
-
         if (pSyncPointWaitList == NULL && numSyncPointsInWaitList > 0) {
             return UR_RESULT_ERROR_INVALID_COMMAND_BUFFER_SYNC_POINT_WAIT_LIST_EXP;
         }
