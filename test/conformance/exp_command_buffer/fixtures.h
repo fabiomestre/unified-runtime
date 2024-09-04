@@ -12,241 +12,237 @@ namespace uur {
 namespace command_buffer {
 
 static void checkCommandBufferSupport(ur_device_handle_t device) {
-  size_t returned_size;
-  ASSERT_SUCCESS(urDeviceGetInfo(device, UR_DEVICE_INFO_EXTENSIONS, 0,
-                                 nullptr, &returned_size));
+    size_t returned_size;
+    ASSERT_SUCCESS(urDeviceGetInfo(device, UR_DEVICE_INFO_EXTENSIONS, 0,
+                                   nullptr, &returned_size));
 
-  std::unique_ptr<char[]> returned_extensions(new char[returned_size]);
+    std::unique_ptr<char[]> returned_extensions(new char[returned_size]);
 
-  ASSERT_SUCCESS(urDeviceGetInfo(device, UR_DEVICE_INFO_EXTENSIONS,
-                                 returned_size, returned_extensions.get(),
-                                 nullptr));
+    ASSERT_SUCCESS(urDeviceGetInfo(device, UR_DEVICE_INFO_EXTENSIONS,
+                                   returned_size, returned_extensions.get(),
+                                   nullptr));
 
-  std::string_view extensions_string(returned_extensions.get());
-  bool command_buffer_support =
-      extensions_string.find(UR_COMMAND_BUFFER_EXTENSION_STRING_EXP) !=
-          std::string::npos;
+    std::string_view extensions_string(returned_extensions.get());
+    bool command_buffer_support =
+        extensions_string.find(UR_COMMAND_BUFFER_EXTENSION_STRING_EXP) !=
+        std::string::npos;
 
-  if (!command_buffer_support) {
-    GTEST_SKIP() << "EXP command-buffer feature is not supported.";
-  }
+    if (!command_buffer_support) {
+        GTEST_SKIP() << "EXP command-buffer feature is not supported.";
+    }
 }
 
 static void checkCommandBufferUpdateSupport(ur_device_handle_t device) {
-  bool updatable_command_buffer_support;
-  ASSERT_SUCCESS(urDeviceGetInfo(
-      device, UR_DEVICE_INFO_COMMAND_BUFFER_UPDATE_SUPPORT_EXP,
-      sizeof(ur_bool_t), &updatable_command_buffer_support, nullptr));
+    bool updatable_command_buffer_support;
+    ASSERT_SUCCESS(urDeviceGetInfo(
+        device, UR_DEVICE_INFO_COMMAND_BUFFER_UPDATE_SUPPORT_EXP,
+        sizeof(ur_bool_t), &updatable_command_buffer_support, nullptr));
 
-  if (!updatable_command_buffer_support) {
-    GTEST_SKIP() << "Updating EXP command-buffers is not supported.";
-  }
+    if (!updatable_command_buffer_support) {
+        GTEST_SKIP() << "Updating EXP command-buffers is not supported.";
+    }
 }
 
 struct urCommandBufferExpTest : uur::urContextTest {
-  void SetUp() override {
-    UUR_RETURN_ON_FATAL_FAILURE(uur::urContextTest::SetUp());
+    void SetUp() override {
+        UUR_RETURN_ON_FATAL_FAILURE(uur::urContextTest::SetUp());
 
-    ASSERT_NO_FATAL_FAILURE(checkCommandBufferSupport(device));
-    ASSERT_SUCCESS(urCommandBufferCreateExp(context, device, nullptr,
-                                            &cmd_buf_handle));
-    ASSERT_NE(cmd_buf_handle, nullptr);
-  }
-
-  void TearDown() override {
-    if (cmd_buf_handle) {
-      EXPECT_SUCCESS(urCommandBufferReleaseExp(cmd_buf_handle));
+        UUR_RETURN_ON_FATAL_FAILURE(checkCommandBufferSupport(device));
+        ASSERT_SUCCESS(urCommandBufferCreateExp(context, device, nullptr,
+                                                &cmd_buf_handle));
+        ASSERT_NE(cmd_buf_handle, nullptr);
     }
-    UUR_RETURN_ON_FATAL_FAILURE(uur::urContextTest::TearDown());
-  }
 
-  ur_exp_command_buffer_handle_t cmd_buf_handle = nullptr;
+    void TearDown() override {
+        if (cmd_buf_handle) {
+            EXPECT_SUCCESS(urCommandBufferReleaseExp(cmd_buf_handle));
+        }
+        UUR_RETURN_ON_FATAL_FAILURE(uur::urContextTest::TearDown());
+    }
+
+    ur_exp_command_buffer_handle_t cmd_buf_handle = nullptr;
 };
 
-struct urUpdatableCommandBufferExpTest : uur::urQueueTest {
-  void SetUp() override {
-    UUR_RETURN_ON_FATAL_FAILURE(uur::urQueueTest::SetUp());
-
-    ASSERT_NO_FATAL_FAILURE(checkCommandBufferSupport(device));
-
-    ASSERT_NO_FATAL_FAILURE(checkCommandBufferUpdateSupport(device));
-
-    // Create a command-buffer with update enabled.
-    ur_exp_command_buffer_desc_t desc{
-        UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_DESC, nullptr, true};
-
-    ASSERT_SUCCESS(urCommandBufferCreateExp(context, device, &desc,
-                                            &updatable_cmd_buf_handle));
-    ASSERT_NE(updatable_cmd_buf_handle, nullptr);
-
-    // Currently there are synchronization issue with immediate submission when used for command buffers.
-    // So, create queue with batched submission for this test suite if the backend is Level Zero.
-    if (backend == UR_PLATFORM_BACKEND_LEVEL_ZERO) { // TODO Remove this workaround
-      ur_queue_flags_t flags = UR_QUEUE_FLAG_SUBMISSION_BATCHED;
-      ur_queue_properties_t props = {
-          /*.stype =*/UR_STRUCTURE_TYPE_QUEUE_PROPERTIES,
-          /*.pNext =*/nullptr,
-          /*.flags =*/flags,
-      };
-      ASSERT_SUCCESS(urQueueCreate(context, device, &props, &queue));
-      ASSERT_NE(queue, nullptr);
-    } else {
-      queue = urQueueTest::queue;
-    }
-  }
-
-  void TearDown() override {
-    if (updatable_cmd_buf_handle) {
-      EXPECT_SUCCESS(urCommandBufferReleaseExp(updatable_cmd_buf_handle));
-    }
-    if (backend == UR_PLATFORM_BACKEND_LEVEL_ZERO && queue) {
-      ASSERT_SUCCESS(urQueueRelease(queue));
-    }
-
-    UUR_RETURN_ON_FATAL_FAILURE(uur::urQueueTest::TearDown());
-  }
-
-  ur_exp_command_buffer_handle_t updatable_cmd_buf_handle = nullptr;
-  ur_queue_handle_t queue = nullptr;
-  ur_platform_backend_t backend{};
-};
-
-template<class T>
+template <class T>
 struct urCommandBufferExpTestWithParam : urQueueTestWithParam<T> {
-  void SetUp() override {
-    UUR_RETURN_ON_FATAL_FAILURE(uur::urQueueTestWithParam<T>::SetUp());
+    void SetUp() override {
+        UUR_RETURN_ON_FATAL_FAILURE(uur::urQueueTestWithParam<T>::SetUp());
 
-    ASSERT_NO_FATAL_FAILURE(checkCommandBufferSupport(this->device));
-    ASSERT_SUCCESS(urCommandBufferCreateExp(this->context, this->device,
-                                            nullptr, &cmd_buf_handle));
-    ASSERT_NE(cmd_buf_handle, nullptr);
-  }
-
-  void TearDown() override {
-    if (cmd_buf_handle) {
-      EXPECT_SUCCESS(urCommandBufferReleaseExp(cmd_buf_handle));
+        UUR_RETURN_ON_FATAL_FAILURE(checkCommandBufferSupport(this->device));
+        ASSERT_SUCCESS(urCommandBufferCreateExp(this->context, this->device,
+                                                nullptr, &cmd_buf_handle));
+        ASSERT_NE(cmd_buf_handle, nullptr);
     }
-    UUR_RETURN_ON_FATAL_FAILURE(uur::urQueueTestWithParam<T>::TearDown());
-  }
 
-  ur_exp_command_buffer_handle_t cmd_buf_handle = nullptr;
+    void TearDown() override {
+        if (cmd_buf_handle) {
+            EXPECT_SUCCESS(urCommandBufferReleaseExp(cmd_buf_handle));
+        }
+        UUR_RETURN_ON_FATAL_FAILURE(uur::urQueueTestWithParam<T>::TearDown());
+    }
+
+    ur_exp_command_buffer_handle_t cmd_buf_handle = nullptr;
 };
 
 struct urCommandBufferExpExecutionTest : uur::urKernelExecutionTest {
-  void SetUp() override {
-    UUR_RETURN_ON_FATAL_FAILURE(uur::urKernelExecutionTest::SetUp());
+    void SetUp() override {
+        UUR_RETURN_ON_FATAL_FAILURE(uur::urKernelExecutionTest::SetUp());
 
-    ASSERT_NO_FATAL_FAILURE(checkCommandBufferSupport(device));
-    ASSERT_SUCCESS(urCommandBufferCreateExp(context, device, nullptr,
-                                            &cmd_buf_handle));
-    ASSERT_NE(cmd_buf_handle, nullptr);
-  }
-
-  void TearDown() override {
-    if (cmd_buf_handle) {
-      EXPECT_SUCCESS(urCommandBufferReleaseExp(cmd_buf_handle));
+        UUR_RETURN_ON_FATAL_FAILURE(checkCommandBufferSupport(device));
+        ASSERT_SUCCESS(urCommandBufferCreateExp(context, device, nullptr,
+                                                &cmd_buf_handle));
+        ASSERT_NE(cmd_buf_handle, nullptr);
     }
-    UUR_RETURN_ON_FATAL_FAILURE(uur::urKernelExecutionTest::TearDown());
-  }
 
-  ur_exp_command_buffer_handle_t cmd_buf_handle = nullptr;
+    void TearDown() override {
+        if (cmd_buf_handle) {
+            EXPECT_SUCCESS(urCommandBufferReleaseExp(cmd_buf_handle));
+        }
+        UUR_RETURN_ON_FATAL_FAILURE(uur::urKernelExecutionTest::TearDown());
+    }
 
+    ur_exp_command_buffer_handle_t cmd_buf_handle = nullptr;
 };
 
-struct urUpdatableCommandBufferExpExecutionTest
-    : uur::urKernelExecutionTest {
-  void SetUp() override {
-    UUR_RETURN_ON_FATAL_FAILURE(uur::urKernelExecutionTest::SetUp());
+struct urUpdatableCommandBufferExpTest : uur::urQueueTest {
+    void SetUp() override {
+        UUR_RETURN_ON_FATAL_FAILURE(uur::urQueueTest::SetUp());
 
-    ASSERT_SUCCESS(urPlatformGetInfo(platform, UR_PLATFORM_INFO_BACKEND,
-                                     sizeof(backend), &backend, nullptr));
+        UUR_RETURN_ON_FATAL_FAILURE(checkCommandBufferSupport(device));
+        UUR_RETURN_ON_FATAL_FAILURE(checkCommandBufferUpdateSupport(device));
 
-    ASSERT_NO_FATAL_FAILURE(checkCommandBufferSupport(device));
-    ASSERT_NO_FATAL_FAILURE(checkCommandBufferUpdateSupport(device));
+        // Create a command-buffer with update enabled.
+        ur_exp_command_buffer_desc_t desc{
+            UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_DESC, nullptr, true};
 
-    // Create a command-buffer with update enabled.
-    ur_exp_command_buffer_desc_t desc{
-        UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_DESC, nullptr, true};
+        ASSERT_SUCCESS(urCommandBufferCreateExp(context, device, &desc,
+                                                &updatable_cmd_buf_handle));
+        ASSERT_NE(updatable_cmd_buf_handle, nullptr);
 
-    ASSERT_SUCCESS(urCommandBufferCreateExp(context, device, &desc,
-                                            &updatable_cmd_buf_handle));
-    ASSERT_NE(updatable_cmd_buf_handle, nullptr);
-
-    // Currently there are synchronization issue with immediate submission when used for command buffers.
-    // So, create queue with batched submission for this test suite if the backend is Level Zero.
-    if (backend == UR_PLATFORM_BACKEND_LEVEL_ZERO) {  // TODO Remove this workaround
-      ur_queue_flags_t flags = UR_QUEUE_FLAG_SUBMISSION_BATCHED;
-      ur_queue_properties_t props = {
-          /*.stype =*/UR_STRUCTURE_TYPE_QUEUE_PROPERTIES,
-          /*.pNext =*/nullptr,
-          /*.flags =*/flags,
-      };
-      ASSERT_SUCCESS(urQueueCreate(context, device, &props, &queue));
-      ASSERT_NE(queue, nullptr);
-    } else {
-      queue = urKernelExecutionTest::queue;
-    }
-  }
-
-  void TearDown() override {
-    if (updatable_cmd_buf_handle) {
-      EXPECT_SUCCESS(urCommandBufferReleaseExp(updatable_cmd_buf_handle));
-    }
-    if (backend == UR_PLATFORM_BACKEND_LEVEL_ZERO && queue) {
-      ASSERT_SUCCESS(urQueueRelease(queue));
+        // Currently there are synchronization issue with immediate submission when used for command buffers.
+        // So, create queue with batched submission for this test suite if the backend is Level Zero.
+        if (backend == UR_PLATFORM_BACKEND_LEVEL_ZERO) {
+            ur_queue_flags_t flags = UR_QUEUE_FLAG_SUBMISSION_BATCHED;
+            ur_queue_properties_t props = {
+                /*.stype =*/UR_STRUCTURE_TYPE_QUEUE_PROPERTIES,
+                /*.pNext =*/nullptr,
+                /*.flags =*/flags,
+            };
+            ASSERT_SUCCESS(urQueueCreate(context, device, &props, &queue));
+            ASSERT_NE(queue, nullptr);
+        } else {
+            queue = urQueueTest::queue;
+        }
     }
 
-    UUR_RETURN_ON_FATAL_FAILURE(
-        urKernelExecutionTest::TearDown());
-  }
+    void TearDown() override {
+        if (updatable_cmd_buf_handle) {
+            EXPECT_SUCCESS(urCommandBufferReleaseExp(updatable_cmd_buf_handle));
+        }
+        if (backend == UR_PLATFORM_BACKEND_LEVEL_ZERO && queue) {
+            ASSERT_SUCCESS(urQueueRelease(queue));
+        }
 
-  ur_exp_command_buffer_handle_t updatable_cmd_buf_handle = nullptr;
-  ur_queue_handle_t queue = nullptr;
-  ur_platform_backend_t backend{};
+        UUR_RETURN_ON_FATAL_FAILURE(uur::urQueueTest::TearDown());
+    }
+
+    ur_exp_command_buffer_handle_t updatable_cmd_buf_handle = nullptr;
+    ur_queue_handle_t queue = nullptr;
+    ur_platform_backend_t backend{};
+};
+
+struct urUpdatableCommandBufferExpExecutionTest : uur::urKernelExecutionTest {
+    void SetUp() override {
+        UUR_RETURN_ON_FATAL_FAILURE(uur::urKernelExecutionTest::SetUp());
+
+        ASSERT_SUCCESS(urPlatformGetInfo(platform, UR_PLATFORM_INFO_BACKEND,
+                                         sizeof(backend), &backend, nullptr));
+
+        UUR_RETURN_ON_FATAL_FAILURE(checkCommandBufferSupport(device));
+        UUR_RETURN_ON_FATAL_FAILURE(checkCommandBufferUpdateSupport(device));
+
+        // Create a command-buffer with update enabled.
+        ur_exp_command_buffer_desc_t desc{
+            UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_DESC, nullptr, true};
+
+        ASSERT_SUCCESS(urCommandBufferCreateExp(context, device, &desc,
+                                                &updatable_cmd_buf_handle));
+        ASSERT_NE(updatable_cmd_buf_handle, nullptr);
+
+        // Currently there are synchronization issue with immediate submission when used for command buffers.
+        // So, create queue with batched submission for this test suite if the backend is Level Zero.
+        if (backend == UR_PLATFORM_BACKEND_LEVEL_ZERO) {
+            ur_queue_flags_t flags = UR_QUEUE_FLAG_SUBMISSION_BATCHED;
+            ur_queue_properties_t props = {
+                /*.stype =*/UR_STRUCTURE_TYPE_QUEUE_PROPERTIES,
+                /*.pNext =*/nullptr,
+                /*.flags =*/flags,
+            };
+            ASSERT_SUCCESS(urQueueCreate(context, device, &props, &queue));
+            ASSERT_NE(queue, nullptr);
+        } else {
+            queue = urKernelExecutionTest::queue;
+        }
+    }
+
+    void TearDown() override {
+        if (updatable_cmd_buf_handle) {
+            EXPECT_SUCCESS(urCommandBufferReleaseExp(updatable_cmd_buf_handle));
+        }
+        if (backend == UR_PLATFORM_BACKEND_LEVEL_ZERO && queue) {
+            ASSERT_SUCCESS(urQueueRelease(queue));
+        }
+
+        UUR_RETURN_ON_FATAL_FAILURE(urKernelExecutionTest::TearDown());
+    }
+
+    ur_exp_command_buffer_handle_t updatable_cmd_buf_handle = nullptr;
+    ur_queue_handle_t queue = nullptr;
+    ur_platform_backend_t backend{};
 };
 
 struct urCommandBufferCommandExpTest
     : urUpdatableCommandBufferExpExecutionTest {
-  void SetUp() override {
-    UUR_RETURN_ON_FATAL_FAILURE(
-        urUpdatableCommandBufferExpExecutionTest::SetUp());
+    void SetUp() override {
+        UUR_RETURN_ON_FATAL_FAILURE(
+            urUpdatableCommandBufferExpExecutionTest::SetUp());
 
-    // Append 2 kernel commands to command-buffer and close command-buffer
-    ASSERT_SUCCESS(urCommandBufferAppendKernelLaunchExp(
-        updatable_cmd_buf_handle, kernel, n_dimensions, &global_offset,
-        &global_size, &local_size, 0, nullptr, 0, nullptr, nullptr,
-        &command_handle));
-    ASSERT_NE(command_handle, nullptr);
+        // Append 2 kernel commands to command-buffer and close command-buffer
+        ASSERT_SUCCESS(urCommandBufferAppendKernelLaunchExp(
+            updatable_cmd_buf_handle, kernel, n_dimensions, &global_offset,
+            &global_size, &local_size, 0, nullptr, 0, nullptr, nullptr,
+            &command_handle));
+        ASSERT_NE(command_handle, nullptr);
 
-    ASSERT_SUCCESS(urCommandBufferAppendKernelLaunchExp(
-        updatable_cmd_buf_handle, kernel, n_dimensions, &global_offset,
-        &global_size, &local_size, 0, nullptr, 0, nullptr, nullptr,
-        &command_handle_2));
-    ASSERT_NE(command_handle_2, nullptr);
+        ASSERT_SUCCESS(urCommandBufferAppendKernelLaunchExp(
+            updatable_cmd_buf_handle, kernel, n_dimensions, &global_offset,
+            &global_size, &local_size, 0, nullptr, 0, nullptr, nullptr,
+            &command_handle_2));
+        ASSERT_NE(command_handle_2, nullptr);
 
-    ASSERT_SUCCESS(urCommandBufferFinalizeExp(updatable_cmd_buf_handle));
-  }
-
-  void TearDown() override {
-    if (command_handle) {
-      EXPECT_SUCCESS(urCommandBufferReleaseCommandExp(command_handle));
+        ASSERT_SUCCESS(urCommandBufferFinalizeExp(updatable_cmd_buf_handle));
     }
 
-    if (command_handle_2) {
-      EXPECT_SUCCESS(urCommandBufferReleaseCommandExp(command_handle_2));
+    void TearDown() override {
+        if (command_handle) {
+            EXPECT_SUCCESS(urCommandBufferReleaseCommandExp(command_handle));
+        }
+
+        if (command_handle_2) {
+            EXPECT_SUCCESS(urCommandBufferReleaseCommandExp(command_handle_2));
+        }
+
+        UUR_RETURN_ON_FATAL_FAILURE(
+            urUpdatableCommandBufferExpExecutionTest::TearDown());
     }
 
-    UUR_RETURN_ON_FATAL_FAILURE(
-        urUpdatableCommandBufferExpExecutionTest::TearDown());
-  }
+    static constexpr size_t local_size = 4;
+    static constexpr size_t global_size = 32;
+    static constexpr size_t global_offset = 0;
+    static constexpr size_t n_dimensions = 1;
 
-  static constexpr size_t local_size = 4;
-  static constexpr size_t global_size = 32;
-  static constexpr size_t global_offset = 0;
-  static constexpr size_t n_dimensions = 1;
-
-  ur_exp_command_buffer_command_handle_t command_handle = nullptr;
-  ur_exp_command_buffer_command_handle_t command_handle_2 = nullptr;
+    ur_exp_command_buffer_command_handle_t command_handle = nullptr;
+    ur_exp_command_buffer_command_handle_t command_handle_2 = nullptr;
 };
 } // namespace command_buffer
 } // namespace uur

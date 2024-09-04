@@ -8057,11 +8057,12 @@ __urdlllocal ur_result_t UR_APICALL urCommandBufferAppendKernelLaunchExp(
         pLocalWorkSize, ///< [in][optional] Local work size to use when executing kernel.
     uint32_t
         numKernelAlternatives, ///< [in] The number of kernel alternatives provided in
-                               ///< pKernelAlternatives.
+                               ///< phKernelAlternatives.
     ur_kernel_handle_t *
         phKernelAlternatives, ///< [in][optional][range(0, numKernelAlternatives)] List of kernels
     ///< handles that might be used to update the kernel in this
-    ///< command after the command-buffer is finalized.
+    ///< command after the command-buffer is finalized. It's invalid to specify
+    ///< the default kernel `hKernel` as part of this list.
     uint32_t
         numSyncPointsInWaitList, ///< [in] The number of sync points in the provided dependency list.
     const ur_exp_command_buffer_sync_point_t *
@@ -8094,6 +8095,18 @@ __urdlllocal ur_result_t UR_APICALL urCommandBufferAppendKernelLaunchExp(
 
         if (NULL == pGlobalWorkSize) {
             return UR_RESULT_ERROR_INVALID_NULL_POINTER;
+        }
+
+        if (phKernelAlternatives == NULL && numKernelAlternatives > 0) {
+            return UR_RESULT_ERROR_INVALID_VALUE;
+        }
+
+        if (phKernelAlternatives != NULL && numKernelAlternatives == 0) {
+            return UR_RESULT_ERROR_INVALID_VALUE;
+        }
+
+        if (phKernelAlternatives` contains `hKernel) {
+            return UR_RESULT_ERROR_INVALID_VALUE;
         }
 
         if (pSyncPointWaitList == NULL && numSyncPointsInWaitList > 0) {
