@@ -7112,8 +7112,9 @@ __urdlllocal ur_result_t UR_APICALL urCommandBufferAppendKernelLaunchExp(
     ur_kernel_handle_t *
         phKernelAlternatives, ///< [in][optional][range(0, numKernelAlternatives)] List of kernels
     ///< handles that might be used to update the kernel in this
-    ///< command after the command-buffer is finalized. It's invalid to specify
-    ///< the default kernel `hKernel` as part of this list.
+    ///< command after the command-buffer is finalized. The default kernel
+    ///< `hKernel` is implicitly marked as an alternative. It's
+    ///< invalid to specify it as part of this list.
     uint32_t
         numSyncPointsInWaitList, ///< [in] The number of sync points in the provided dependency list.
     const ur_exp_command_buffer_sync_point_t *

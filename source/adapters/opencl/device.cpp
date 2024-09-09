@@ -1085,12 +1085,25 @@ UR_APIEXPORT ur_result_t UR_APICALL urDeviceGetInfo(ur_device_handle_t hDevice,
     return ReturnValue(ExtStr.find("cl_khr_command_buffer") !=
                        std::string::npos);
   }
-  case UR_DEVICE_INFO_COMMAND_BUFFER_UPDATE_SUPPORT_EXP: {
+    //  case UR_DEVICE_INFO_COMMAND_BUFFER_UPDATE_SUPPORT_EXP: {
+    //    cl_device_id Dev = cl_adapter::cast<cl_device_id>(hDevice);
+    //    ur_device_command_buffer_update_capability_flags_t UpdateCapabilities;
+    //    CL_RETURN_ON_FAILURE(
+    //        deviceSupportsURCommandBufferKernelUpdate(Dev,
+    //        UpdateCapabilities));
+    //    ur_device_command_buffer_update_capability_flags_t
+    //    RequiredCapabilities =
+    //        UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_KERNEL_ARGUMENTS |
+    //        UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_KERNEL_WORKGROUP;
+    //    return ReturnValue((UpdateCapabilities & RequiredCapabilities) ==
+    //                       RequiredCapabilities);
+    //  }
+  case UR_DEVICE_INFO_COMMAND_BUFFER_UPDATE_CAPABILITIES_EXP: {
     cl_device_id Dev = cl_adapter::cast<cl_device_id>(hDevice);
-    bool Supported = false;
+    ur_device_command_buffer_update_capability_flags_t UpdateCapabilities;
     CL_RETURN_ON_FAILURE(
-        deviceSupportsURCommandBufferKernelUpdate(Dev, Supported));
-    return ReturnValue(Supported);
+        getDeviceCommandBufferUpdateCapabilities(Dev, UpdateCapabilities));
+    return ReturnValue(UpdateCapabilities);
   }
   default: {
     return UR_RESULT_ERROR_INVALID_ENUMERATION;

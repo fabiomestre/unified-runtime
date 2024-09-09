@@ -32,14 +32,20 @@ static void checkCommandBufferSupport(ur_device_handle_t device) {
     }
 }
 
-static void checkCommandBufferUpdateSupport(ur_device_handle_t device) {
-    bool updatable_command_buffer_support;
+static void checkCommandBufferUpdateSupport(
+    ur_device_handle_t device,
+    ur_device_command_buffer_update_capability_flags_t requiredCapabilities) {
+    ur_device_command_buffer_update_capability_flags_t update_capability_flags;
     ASSERT_SUCCESS(urDeviceGetInfo(
-        device, UR_DEVICE_INFO_COMMAND_BUFFER_UPDATE_SUPPORT_EXP,
-        sizeof(ur_bool_t), &updatable_command_buffer_support, nullptr));
+        device, UR_DEVICE_INFO_COMMAND_BUFFER_UPDATE_CAPABILITIES_EXP,
+        sizeof(update_capability_flags), &update_capability_flags, nullptr));
 
-    if (!updatable_command_buffer_support) {
+    if (!update_capability_flags) {
         GTEST_SKIP() << "Updating EXP command-buffers is not supported.";
+    } else if ((update_capability_flags & requiredCapabilities) !=
+               requiredCapabilities) {
+        GTEST_SKIP() << "Some of the command-buffer update capabilities "
+                        "required are not supported by the device.";
     }
 }
 
@@ -109,7 +115,14 @@ struct urUpdatableCommandBufferExpTest : uur::urQueueTest {
         UUR_RETURN_ON_FATAL_FAILURE(uur::urQueueTest::SetUp());
 
         UUR_RETURN_ON_FATAL_FAILURE(checkCommandBufferSupport(device));
-        UUR_RETURN_ON_FATAL_FAILURE(checkCommandBufferUpdateSupport(device));
+
+        auto requiredCapabilities =
+            UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_KERNEL_ARGUMENTS |
+            UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_LOCAL_WORK_SIZE |
+            UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_GLOBAL_WORK_SIZE |
+            UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_GLOBAL_WORK_OFFSET;
+        UUR_RETURN_ON_FATAL_FAILURE(
+            checkCommandBufferUpdateSupport(device, requiredCapabilities));
 
         // Create a command-buffer with update enabled.
         ur_exp_command_buffer_desc_t desc{
@@ -118,36 +131,16 @@ struct urUpdatableCommandBufferExpTest : uur::urQueueTest {
         ASSERT_SUCCESS(urCommandBufferCreateExp(context, device, &desc,
                                                 &updatable_cmd_buf_handle));
         ASSERT_NE(updatable_cmd_buf_handle, nullptr);
-
-        // Currently there are synchronization issue with immediate submission when used for command buffers.
-        // So, create queue with batched submission for this test suite if the backend is Level Zero.
-        if (backend == UR_PLATFORM_BACKEND_LEVEL_ZERO) {
-            ur_queue_flags_t flags = UR_QUEUE_FLAG_SUBMISSION_BATCHED;
-            ur_queue_properties_t props = {
-                /*.stype =*/UR_STRUCTURE_TYPE_QUEUE_PROPERTIES,
-                /*.pNext =*/nullptr,
-                /*.flags =*/flags,
-            };
-            ASSERT_SUCCESS(urQueueCreate(context, device, &props, &queue));
-            ASSERT_NE(queue, nullptr);
-        } else {
-            queue = urQueueTest::queue;
-        }
     }
 
     void TearDown() override {
         if (updatable_cmd_buf_handle) {
             EXPECT_SUCCESS(urCommandBufferReleaseExp(updatable_cmd_buf_handle));
         }
-        if (backend == UR_PLATFORM_BACKEND_LEVEL_ZERO && queue) {
-            ASSERT_SUCCESS(urQueueRelease(queue));
-        }
-
         UUR_RETURN_ON_FATAL_FAILURE(uur::urQueueTest::TearDown());
     }
 
     ur_exp_command_buffer_handle_t updatable_cmd_buf_handle = nullptr;
-    ur_queue_handle_t queue = nullptr;
     ur_platform_backend_t backend{};
 };
 
@@ -155,30 +148,17 @@ struct urUpdatableCommandBufferExpExecutionTest : uur::urKernelExecutionTest {
     void SetUp() override {
         UUR_RETURN_ON_FATAL_FAILURE(uur::urKernelExecutionTest::SetUp());
 
-    ASSERT_NO_FATAL_FAILURE(checkCommandBufferSupport(device));
-    ASSERT_SUCCESS(urCommandBufferCreateExp(context, device, nullptr,
-                                            &cmd_buf_handle));
-    ASSERT_NE(cmd_buf_handle, nullptr);
-  }
+        UUR_RETURN_ON_FATAL_FAILURE(checkCommandBufferSupport(device));
+        auto requiredCapabilities =
+            UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_KERNEL_ARGUMENTS |
+            UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_LOCAL_WORK_SIZE |
+            UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_GLOBAL_WORK_SIZE |
+            UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_GLOBAL_WORK_OFFSET;
+        UUR_RETURN_ON_FATAL_FAILURE(
+            checkCommandBufferUpdateSupport(device, requiredCapabilities));
 
-  void TearDown() override {
-    if (cmd_buf_handle) {
-      EXPECT_SUCCESS(urCommandBufferReleaseExp(cmd_buf_handle));
-    }
-    UUR_RETURN_ON_FATAL_FAILURE(uur::urKernelExecutionTest::TearDown());
-  }
-
-  ur_exp_command_buffer_handle_t cmd_buf_handle = nullptr;
-
-};
-
-struct urUpdatableCommandBufferExpExecutionTest
-    : uur::urKernelExecutionTest {
-  void SetUp() override {
-    UUR_RETURN_ON_FATAL_FAILURE(uur::urKernelExecutionTest::SetUp());
-
-    ASSERT_NO_FATAL_FAILURE(checkCommandBufferSupport(device));
-    ASSERT_NO_FATAL_FAILURE(checkCommandBufferUpdateSupport(device));
+        UUR_RETURN_ON_FATAL_FAILURE(
+            checkCommandBufferUpdateSupport(device, requiredCapabilities));
 
         // Create a command-buffer with update enabled.
         ur_exp_command_buffer_desc_t desc{
@@ -194,10 +174,10 @@ struct urUpdatableCommandBufferExpExecutionTest
         if (updatable_cmd_buf_handle) {
             EXPECT_SUCCESS(urCommandBufferReleaseExp(updatable_cmd_buf_handle));
         }
-        UUR_RETURN_ON_FATAL_FAILURE(
-            urKernelExecutionTest::TearDown());
+        UUR_RETURN_ON_FATAL_FAILURE(urKernelExecutionTest::TearDown());
     }
 
+    ur_platform_backend_t backend{};
     ur_exp_command_buffer_handle_t updatable_cmd_buf_handle = nullptr;
 };
 

@@ -124,7 +124,7 @@ TEST_P(BufferFillCommandTest, UpdateParameters) {
     ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,           //hNewKernel
+        kernel,           // hNewKernel
         1,                // numNewMemObjArgs
         0,                // numNewPointerArgs
         1,                // numNewValueArgs
@@ -177,7 +177,7 @@ TEST_P(BufferFillCommandTest, UpdateGlobalSize) {
     ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,           //hNewKernel
+        kernel,           // hNewKernel
         1,                // numNewMemObjArgs
         0,                // numNewPointerArgs
         0,                // numNewValueArgs
@@ -228,7 +228,7 @@ TEST_P(BufferFillCommandTest, SeparateUpdateCalls) {
     ur_exp_command_buffer_update_kernel_launch_desc_t output_update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,           //hNewKernel
+        kernel,           // hNewKernel
         1,                // numNewMemObjArgs
         0,                // numNewPointerArgs
         0,                // numNewValueArgs
@@ -257,7 +257,7 @@ TEST_P(BufferFillCommandTest, SeparateUpdateCalls) {
     ur_exp_command_buffer_update_kernel_launch_desc_t input_update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,          //hNewKernel
+        kernel,          // hNewKernel
         0,               // numNewMemObjArgs
         0,               // numNewPointerArgs
         1,               // numNewValueArgs
@@ -276,7 +276,7 @@ TEST_P(BufferFillCommandTest, SeparateUpdateCalls) {
     ur_exp_command_buffer_update_kernel_launch_desc_t global_size_update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,                              //hNewKernel
+        kernel,                              // hNewKernel
         0,                                   // numNewMemObjArgs
         0,                                   // numNewPointerArgs
         0,                                   // numNewValueArgs
@@ -321,7 +321,7 @@ TEST_P(BufferFillCommandTest, OverrideUpdate) {
     ur_exp_command_buffer_update_kernel_launch_desc_t first_update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,            //hNewKernel
+        kernel,            // hNewKernel
         0,                 // numNewMemObjArgs
         0,                 // numNewPointerArgs
         1,                 // numNewValueArgs
@@ -349,7 +349,7 @@ TEST_P(BufferFillCommandTest, OverrideUpdate) {
     ur_exp_command_buffer_update_kernel_launch_desc_t second_update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,             //hNewKernel
+        kernel,             // hNewKernel
         0,                  // numNewMemObjArgs
         0,                  // numNewPointerArgs
         1,                  // numNewValueArgs
@@ -406,7 +406,7 @@ TEST_P(BufferFillCommandTest, OverrideArgList) {
     ur_exp_command_buffer_update_kernel_launch_desc_t second_update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,      //hNewKernel
+        kernel,      // hNewKernel
         0,           // numNewMemObjArgs
         0,           // numNewPointerArgs
         2,           // numNewValueArgs

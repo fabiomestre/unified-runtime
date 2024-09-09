@@ -90,7 +90,7 @@ TEST_P(InvalidUpdateTest, NotFinalizedCommandBuffer) {
     ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,          //hNewKernel
+        kernel,          // hNewKernel
         0,               // numNewMemObjArgs
         0,               // numNewPointerArgs
         1,               // numNewValueArgs
@@ -141,7 +141,7 @@ TEST_P(InvalidUpdateTest, NotUpdatableCommandBuffer) {
     ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,          //hNewKernel
+        kernel,          // hNewKernel
         0,               // numNewMemObjArgs
         0,               // numNewPointerArgs
         1,               // numNewValueArgs
@@ -178,7 +178,7 @@ TEST_P(InvalidUpdateTest, GlobalLocalSizeMistach) {
     ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,          //hNewKernel
+        kernel,          // hNewKernel
         0,               // numNewMemObjArgs
         0,               // numNewPointerArgs
         0,               // numNewValueArgs
@@ -216,7 +216,7 @@ TEST_P(InvalidUpdateTest, ImplToUserDefinedLocalSize) {
     ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,           //hNewKernel
+        kernel,           // hNewKernel
         0,                // numNewMemObjArgs
         0,                // numNewPointerArgs
         0,                // numNewValueArgs
@@ -249,11 +249,40 @@ TEST_P(InvalidUpdateTest, UserToImplDefinedLocalSize) {
     ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,           //hNewKernel
+        kernel,           // hNewKernel
         0,                // numNewMemObjArgs
         0,                // numNewPointerArgs
         0,                // numNewValueArgs
         n_dimensions,     // newWorkDim
+        nullptr,          // pNewMemObjArgList
+        nullptr,          // pNewPointerArgList
+        nullptr,          // pNewValueArgList
+        nullptr,          // pNewGlobalWorkOffset
+        &new_global_size, // pNewGlobalWorkSize
+        nullptr,          // pNewLocalWorkSize
+    };
+
+    // Update command local size to NULL when created with non-NULL value
+    ur_result_t result =
+        urCommandBufferUpdateKernelLaunchExp(command_handle, &update_desc);
+    ASSERT_EQ(UR_RESULT_ERROR_INVALID_OPERATION, result);
+}
+
+// If the kernel handle is not being updated, then it's invalid to change
+// the number of dimensions.
+TEST_P(InvalidUpdateTest, InvalidDimensions) {
+    ASSERT_SUCCESS(urCommandBufferFinalizeExp(updatable_cmd_buf_handle));
+    finalized = true;
+
+    size_t new_global_size = 64;
+    ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
+        UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
+        nullptr,                                                        // pNext
+        kernel,           // hNewKernel
+        0,                // numNewMemObjArgs
+        0,                // numNewPointerArgs
+        0,                // numNewValueArgs
+        n_dimensions + 1, // newWorkDim
         nullptr,          // pNewMemObjArgList
         nullptr,          // pNewPointerArgList
         nullptr,          // pNewValueArgList

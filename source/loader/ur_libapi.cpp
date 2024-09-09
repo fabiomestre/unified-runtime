@@ -7551,8 +7551,9 @@ ur_result_t UR_APICALL urCommandBufferAppendKernelLaunchExp(
     ur_kernel_handle_t *
         phKernelAlternatives, ///< [in][optional][range(0, numKernelAlternatives)] List of kernels
     ///< handles that might be used to update the kernel in this
-    ///< command after the command-buffer is finalized. It's invalid to specify
-    ///< the default kernel `hKernel` as part of this list.
+    ///< command after the command-buffer is finalized. The default kernel
+    ///< `hKernel` is implicitly marked as an alternative. It's
+    ///< invalid to specify it as part of this list.
     uint32_t
         numSyncPointsInWaitList, ///< [in] The number of sync points in the provided dependency list.
     const ur_exp_command_buffer_sync_point_t *
@@ -8313,8 +8314,9 @@ ur_result_t UR_APICALL urCommandBufferReleaseCommandExp(
 ///     - ::UR_RESULT_ERROR_INVALID_OPERATION
 ///         + If ::ur_exp_command_buffer_desc_t::isUpdatable was not set to true on creation of the command buffer `hCommand` belongs to.
 ///         + If the command-buffer `hCommand` belongs to has not been finalized.
+///         + If `pUpdateKernellaunch->hNewKernel` is different from the currently active kernel in `hCommand`, and `pUpdateKernellaunch->newWorkDim` is zero.
+///         + If `pUpdateKernellaunch->hNewKernel` is equal to the currently active kernel in `hCommand`, and `pUpdateKernellaunch->newWorkDim` is non-zero and different from the work-dim currently associated with `hCommand`.
 ///         + If `pUpdateKernellaunch->newWorkDim` is non-zero, and `pUpdateKernelLaunch->pNewLocalWorkSize` is set to a non-NULL value, and `pUpdateKernelLaunch->pNewGlobalWorkSize` is NULL.
-///         + If `pUpdateKernellaunch->hNewKernel` is equal to the current kernel associated with `hCommand`, and `pUpdateKernellaunch->newWorkDim` is non-zero and different from the work-dim currently associated with `hCommand`.
 ///         + If `pUpdateKernellaunch->hNewKernel` is equal to the current kernel associated with `hCommand`, and `pUpdateKernellaunch->newWorkDim` is non-zero, and `pUpdateKernelLaunch->pNewLocalWorkSize` is set to a non-NULL value while `hCommand` is currently associated with a NULL local work size.
 ///         + If `pUpdateKernellaunch->hNewKernel` is equal to the current kernel associated with `hCommand`, and `pUpdateKernellaunch->newWorkDim` is non-zero, and `pUpdateKernelLaunch->pNewLocalWorkSize` is set to a NULL value while `hCommand` is currently associated with a non-NULL local work size.
 ///     - ::UR_RESULT_ERROR_INVALID_COMMAND_BUFFER_COMMAND_HANDLE_EXP

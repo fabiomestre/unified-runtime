@@ -167,8 +167,9 @@ Updating Command-Buffer Commands
 
 An adapter implementing the command-buffer experimental feature can optionally
 support updating the configuration of kernel commands recorded to a
-command-buffer. Support for this is reported by returning true in the
-${X}_DEVICE_INFO_COMMAND_BUFFER_UPDATE_SUPPORT_EXP query.
+command-buffer. The attributes of kernel commands that can be updated are
+device specific and can be queried using the
+${X}_DEVICE_INFO_COMMAND_BUFFER_UPDATE_CAPABILITIES_EXP query.
 
 Updating kernel commands is done by passing the new kernel configuration
 to ${x}CommandBufferUpdateKernelLaunchExp along with the command handle of
@@ -259,7 +260,13 @@ Enums
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 * ${x}_device_info_t
     * ${X}_DEVICE_INFO_COMMAND_BUFFER_SUPPORT_EXP
-    * ${X}_DEVICE_INFO_COMMAND_BUFFER_UPDATE_SUPPORT_EXP
+    * ${X}_DEVICE_INFO_COMMAND_BUFFER_UPDATE_CAPABILITIES_EXP
+* ${x}_device_command_buffer_update_capability_flags_t
+    * UPDATE_KERNEL_ARGUMENTS
+    * LOCAL_WORK_SIZE
+    * GLOBAL_WORK_SIZE
+    * GLOBAL_WORK_OFFSET
+    * KERNEL_HANDLE
 * ${x}_result_t
     * ${X}_RESULT_ERROR_INVALID_COMMAND_BUFFER_EXP
     * ${X}_RESULT_ERROR_INVALID_COMMAND_BUFFER_SYNC_POINT_EXP

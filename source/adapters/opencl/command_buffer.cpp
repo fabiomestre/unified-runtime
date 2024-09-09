@@ -71,10 +71,11 @@ UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferCreateExp(
   const bool IsUpdatable =
       pCommandBufferDesc ? pCommandBufferDesc->isUpdatable : false;
 
-  bool DeviceSupportsUpdate = false;
+  ur_device_command_buffer_update_capability_flags_t UpdateCapabilities;
   cl_device_id CLDevice = cl_adapter::cast<cl_device_id>(hDevice);
-  CL_RETURN_ON_FAILURE(deviceSupportsURCommandBufferKernelUpdate(
-      CLDevice, DeviceSupportsUpdate));
+  CL_RETURN_ON_FAILURE(
+      getDeviceCommandBufferUpdateCapabilities(CLDevice, UpdateCapabilities));
+  bool DeviceSupportsUpdate = UpdateCapabilities > 0;
 
   if (IsUpdatable && !DeviceSupportsUpdate) {
     return UR_RESULT_ERROR_INVALID_OPERATION;

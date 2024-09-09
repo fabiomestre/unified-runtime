@@ -129,7 +129,7 @@ TEST_P(NDRangeUpdateTest, Update3D) {
     ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,                   //hNewKernel
+        kernel,                   // hNewKernel
         0,                        // numNewMemObjArgs
         0,                        // numNewPointerArgs
         0,                        // numNewValueArgs
@@ -174,7 +174,7 @@ TEST_P(NDRangeUpdateTest, Update2D) {
     ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,                   //hNewKernel
+        kernel,                   // hNewKernel
         0,                        // numNewMemObjArgs
         0,                        // numNewPointerArgs
         0,                        // numNewValueArgs
@@ -219,7 +219,7 @@ TEST_P(NDRangeUpdateTest, Update1D) {
     ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,                   //hNewKernel
+        kernel,                   // hNewKernel
         0,                        // numNewMemObjArgs
         0,                        // numNewPointerArgs
         0,                        // numNewValueArgs
@@ -253,7 +253,7 @@ TEST_P(NDRangeUpdateTest, Invalid) {
     ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,       //hNewKernel
+        kernel,       // hNewKernel
         0,            // numNewMemObjArgs
         0,            // numNewPointerArgs
         0,            // numNewValueArgs

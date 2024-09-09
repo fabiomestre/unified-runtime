@@ -1637,8 +1637,8 @@ typedef enum ur_device_info_t {
                                                                      ///< `EnqueueDeviceGlobalVariableRead` entry points.
     UR_DEVICE_INFO_COMMAND_BUFFER_SUPPORT_EXP = 0x1000,              ///< [::ur_bool_t] Returns true if the device supports the use of
                                                                      ///< command-buffers.
-    UR_DEVICE_INFO_COMMAND_BUFFER_UPDATE_SUPPORT_EXP = 0x1001,       ///< [::ur_bool_t] Returns true if the device supports updating the kernel
-                                                                     ///< commands in a command-buffer.
+    UR_DEVICE_INFO_COMMAND_BUFFER_UPDATE_CAPABILITIES_EXP = 0x1001,  ///< [::ur_device_command_buffer_update_capability_flags_t] Command-buffer
+                                                                     ///< update capabilities of the device
     UR_DEVICE_INFO_CLUSTER_LAUNCH_EXP = 0x1111,                      ///< [::ur_bool_t] return true if enqueue Cluster Launch is supported
     UR_DEVICE_INFO_BINDLESS_IMAGES_SUPPORT_EXP = 0x2000,             ///< [::ur_bool_t] returns true if the device supports the creation of
                                                                      ///< bindless images
@@ -8168,6 +8168,27 @@ urBindlessImagesSignalExternalSemaphoreExp(
 #pragma region command_buffer_(experimental)
 #endif
 ///////////////////////////////////////////////////////////////////////////////
+/// @brief Device kernel execution capability
+typedef uint32_t ur_device_command_buffer_update_capability_flags_t;
+typedef enum ur_device_command_buffer_update_capability_flag_t {
+    UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_KERNEL_ARGUMENTS = UR_BIT(0),   ///< Device supports updating the kernel arguments in command-buffer
+                                                                                    ///< commands.
+    UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_LOCAL_WORK_SIZE = UR_BIT(1),    ///< Device supports updating the local work-group size in command-buffer
+                                                                                    ///< commands.
+    UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_GLOBAL_WORK_SIZE = UR_BIT(2),   ///< Device supports updating the global work-group size in command-buffer
+                                                                                    ///< commands.
+    UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_GLOBAL_WORK_OFFSET = UR_BIT(3), ///< Device supports updating the global work offset in command-buffer
+                                                                                    ///< commands.
+    UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_KERNEL_HANDLE = UR_BIT(4),      ///< Device supports updating the kernel handle in command-buffer commands.
+    /// @cond
+    UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_FORCE_UINT32 = 0x7fffffff
+    /// @endcond
+
+} ur_device_command_buffer_update_capability_flag_t;
+/// @brief Bit Mask for validating ur_device_command_buffer_update_capability_flags_t
+#define UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAGS_MASK 0xffffffe0
+
+///////////////////////////////////////////////////////////////////////////////
 /// @brief Command-buffer query information type
 typedef enum ur_exp_command_buffer_info_t {
     UR_EXP_COMMAND_BUFFER_INFO_REFERENCE_COUNT = 0, ///< [uint32_t] Reference count of the command-buffer object.
@@ -8220,7 +8241,7 @@ typedef struct ur_exp_command_buffer_update_memobj_arg_desc_t {
                                                            ///< ::UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_MEMOBJ_ARG_DESC
     const void *pNext;                                     ///< [in][optional] pointer to extension-specific structure
     uint32_t argIndex;                                     ///< [in] Argument index.
-    const ur_kernel_arg_mem_obj_properties_t *pProperties; ///< [in][optinal] Pointer to memory object properties.
+    const ur_kernel_arg_mem_obj_properties_t *pProperties; ///< [in][optional] Pointer to memory object properties.
     ur_mem_handle_t hNewMemObjArg;                         ///< [in][optional] Handle of memory object to set at argument index.
 
 } ur_exp_command_buffer_update_memobj_arg_desc_t;
@@ -8232,7 +8253,7 @@ typedef struct ur_exp_command_buffer_update_pointer_arg_desc_t {
                                                            ///< ::UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_POINTER_ARG_DESC
     const void *pNext;                                     ///< [in][optional] pointer to extension-specific structure
     uint32_t argIndex;                                     ///< [in] Argument index.
-    const ur_kernel_arg_pointer_properties_t *pProperties; ///< [in][optinal] Pointer to USM pointer properties.
+    const ur_kernel_arg_pointer_properties_t *pProperties; ///< [in][optional] Pointer to USM pointer properties.
     const void *pNewPointerArg;                            ///< [in][optional] USM pointer to memory location holding the argument
                                                            ///< value to set at argument index.
 
@@ -8246,7 +8267,7 @@ typedef struct ur_exp_command_buffer_update_value_arg_desc_t {
     const void *pNext;                                   ///< [in][optional] pointer to extension-specific structure
     uint32_t argIndex;                                   ///< [in] Argument index.
     uint32_t argSize;                                    ///< [in] Argument size.
-    const ur_kernel_arg_value_properties_t *pProperties; ///< [in][optinal] Pointer to value properties.
+    const ur_kernel_arg_value_properties_t *pProperties; ///< [in][optional] Pointer to value properties.
     const void *pNewValueArg;                            ///< [in][optional] Argument value representing matching kernel arg type to
                                                          ///< set at argument index.
 
@@ -8423,8 +8444,9 @@ urCommandBufferAppendKernelLaunchExp(
                                                                   ///< phKernelAlternatives.
     ur_kernel_handle_t *phKernelAlternatives,                     ///< [in][optional][range(0, numKernelAlternatives)] List of kernels
                                                                   ///< handles that might be used to update the kernel in this
-                                                                  ///< command after the command-buffer is finalized. It's invalid to specify
-                                                                  ///< the default kernel `hKernel` as part of this list.
+                                                                  ///< command after the command-buffer is finalized. The default kernel
+                                                                  ///< `hKernel` is implicitly marked as an alternative. It's
+                                                                  ///< invalid to specify it as part of this list.
     uint32_t numSyncPointsInWaitList,                             ///< [in] The number of sync points in the provided dependency list.
     const ur_exp_command_buffer_sync_point_t *pSyncPointWaitList, ///< [in][optional] A list of sync points that this command depends on. May
                                                                   ///< be ignored if command-buffer is in-order.
@@ -8940,8 +8962,9 @@ urCommandBufferReleaseCommandExp(
 ///     - ::UR_RESULT_ERROR_INVALID_OPERATION
 ///         + If ::ur_exp_command_buffer_desc_t::isUpdatable was not set to true on creation of the command buffer `hCommand` belongs to.
 ///         + If the command-buffer `hCommand` belongs to has not been finalized.
+///         + If `pUpdateKernellaunch->hNewKernel` is different from the currently active kernel in `hCommand`, and `pUpdateKernellaunch->newWorkDim` is zero.
+///         + If `pUpdateKernellaunch->hNewKernel` is equal to the currently active kernel in `hCommand`, and `pUpdateKernellaunch->newWorkDim` is non-zero and different from the work-dim currently associated with `hCommand`.
 ///         + If `pUpdateKernellaunch->newWorkDim` is non-zero, and `pUpdateKernelLaunch->pNewLocalWorkSize` is set to a non-NULL value, and `pUpdateKernelLaunch->pNewGlobalWorkSize` is NULL.
-///         + If `pUpdateKernellaunch->hNewKernel` is equal to the current kernel associated with `hCommand`, and `pUpdateKernellaunch->newWorkDim` is non-zero and different from the work-dim currently associated with `hCommand`.
 ///         + If `pUpdateKernellaunch->hNewKernel` is equal to the current kernel associated with `hCommand`, and `pUpdateKernellaunch->newWorkDim` is non-zero, and `pUpdateKernelLaunch->pNewLocalWorkSize` is set to a non-NULL value while `hCommand` is currently associated with a NULL local work size.
 ///         + If `pUpdateKernellaunch->hNewKernel` is equal to the current kernel associated with `hCommand`, and `pUpdateKernellaunch->newWorkDim` is non-zero, and `pUpdateKernelLaunch->pNewLocalWorkSize` is set to a NULL value while `hCommand` is currently associated with a non-NULL local work size.
 ///     - ::UR_RESULT_ERROR_INVALID_COMMAND_BUFFER_COMMAND_HANDLE_EXP

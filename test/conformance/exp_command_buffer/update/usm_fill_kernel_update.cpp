@@ -120,7 +120,7 @@ TEST_P(USMFillCommandTest, UpdateParameters) {
     ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,                              //hNewKernel
+        kernel,                              // hNewKernel
         0,                                   // numNewMemObjArgs
         1,                                   // numNewPointerArgs
         1,                                   // numNewValueArgs
@@ -174,7 +174,7 @@ TEST_P(USMFillCommandTest, UpdateBeforeEnqueue) {
     ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,           //hNewKernel
+        kernel,           // hNewKernel
         0,                // numNewMemObjArgs
         1,                // numNewPointerArgs
         1,                // numNewValueArgs
@@ -326,7 +326,7 @@ TEST_P(USMMultipleFillCommandTest, UpdateAllKernels) {
         ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
             UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
             nullptr,          // pNext
-            kernel,           //hNewKernel
+            kernel,           // hNewKernel
             0,                // numNewMemObjArgs
             1,                // numNewPointerArgs
             1,                // numNewValueArgs

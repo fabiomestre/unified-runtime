@@ -73,7 +73,7 @@ struct TestSaxpyKernel : public TestKernel {
         ASSERT_NO_FATAL_FAILURE(buildKernel());
 
         const size_t AllocationSize = sizeof(uint32_t) * GlobalSize;
-        for (auto &SharedPtr : Memory) {
+        for (auto &SharedPtr : Allocations) {
             ASSERT_SUCCESS(urUSMSharedAlloc(Context, Device, nullptr, nullptr,
                                             AllocationSize, &SharedPtr));
             ASSERT_NE(SharedPtr, nullptr);
@@ -84,28 +84,80 @@ struct TestSaxpyKernel : public TestKernel {
         }
 
         // Index 0 is the output
-        ASSERT_SUCCESS(urKernelSetArgPointer(Kernel, 0, nullptr, Memory[0]));
+        ASSERT_SUCCESS(
+            urKernelSetArgPointer(Kernel, 0, nullptr, Allocations[0]));
         // Index 1 is A
         ASSERT_SUCCESS(urKernelSetArgValue(Kernel, 1, sizeof(A), nullptr, &A));
         // Index 2 is X
-        ASSERT_SUCCESS(urKernelSetArgPointer(Kernel, 2, nullptr, Memory[1]));
+        ASSERT_SUCCESS(
+            urKernelSetArgPointer(Kernel, 2, nullptr, Allocations[1]));
         // Index 3 is Y
-        ASSERT_SUCCESS(urKernelSetArgPointer(Kernel, 3, nullptr, Memory[2]));
+        ASSERT_SUCCESS(
+            urKernelSetArgPointer(Kernel, 3, nullptr, Allocations[2]));
+
+        UpdatePointerDesc[0] = {
+            UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_POINTER_ARG_DESC, // stype
+            nullptr,         // pNext
+            2,               // argIndex
+            nullptr,         // pProperties
+            &Allocations[0], // pArgValue
+        };
+
+        UpdatePointerDesc[1] = {
+            UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_POINTER_ARG_DESC, // stype
+            nullptr,         // pNext
+            2,               // argIndex
+            nullptr,         // pProperties
+            &Allocations[1], // pArgValue
+        };
+
+        UpdatePointerDesc[2] = {
+            UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_POINTER_ARG_DESC, // stype
+            nullptr,         // pNext
+            3,               // argIndex
+            nullptr,         // pProperties
+            &Allocations[2], // pArgValue
+        };
+
+        UpdateValDesc = {
+            UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_VALUE_ARG_DESC, // stype
+            nullptr,                                                    // pNext
+            1,         // argIndex
+            sizeof(A), // argSize
+            nullptr,   // pProperties
+            &A,        // hArgValue
+        };
+
+        UpdateDesc = {
+            UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
+            nullptr,                  // pNext
+            Kernel,                   // hNewKernel
+            0,                        // numNewMemObjArgs
+            3,                        // numNewPointerArgs
+            1,                        // numNewValueArgs
+            NDimensions,              // newWorkDim
+            nullptr,                  // pNewMemObjArgList
+            UpdatePointerDesc.data(), // pNewPointerArgList
+            &UpdateValDesc,           // pNewValueArgList
+            &GlobalOffset,            // pNewGlobalWorkOffset
+            &GlobalSize,              // pNewGlobalWorkSize
+            &LocalSize,               // pNewLocalWorkSize
+        };
     }
 
     void destroyKernel() override {
-        for (auto &shared_ptr : Memory) {
-            if (shared_ptr) {
-                EXPECT_SUCCESS(urUSMFree(Context, shared_ptr));
+        for (auto &Allocation : Allocations) {
+            if (Allocation) {
+                EXPECT_SUCCESS(urUSMFree(Context, Allocation));
             }
         }
         ASSERT_NO_FATAL_FAILURE(TestKernel::destroyKernel());
     }
 
     void validate() override {
-        auto *output = static_cast<uint32_t *>(Memory[0]);
-        auto *X = static_cast<uint32_t *>(Memory[1]);
-        auto *Y = static_cast<uint32_t *>(Memory[2]);
+        auto *output = static_cast<uint32_t *>(Allocations[0]);
+        auto *X = static_cast<uint32_t *>(Allocations[1]);
+        auto *Y = static_cast<uint32_t *>(Allocations[2]);
 
         for (size_t i = 0; i < GlobalSize; i++) {
             uint32_t result = A * X[i] + Y[i];
@@ -113,13 +165,18 @@ struct TestSaxpyKernel : public TestKernel {
         }
     }
 
-    const size_t LocalSize = 4;
-    const size_t GlobalSize = 32;
-    const size_t GlobalOffset = 0;
-    const size_t NDimensions = 1;
-    const uint32_t A = 42;
+    std::array<ur_exp_command_buffer_update_pointer_arg_desc_t, 3>
+        UpdatePointerDesc;
+    ur_exp_command_buffer_update_value_arg_desc_t UpdateValDesc;
+    ur_exp_command_buffer_update_kernel_launch_desc_t UpdateDesc;
 
-    std::array<void *, 3> Memory = {nullptr, nullptr, nullptr};
+    size_t LocalSize = 4;
+    size_t GlobalSize = 32;
+    size_t GlobalOffset = 0;
+    uint32_t NDimensions = 1;
+    uint32_t A = 42;
+
+    std::array<void *, 3> Allocations = {nullptr, nullptr, nullptr};
 };
 
 struct TestFill2DKernel : public TestKernel {
@@ -209,6 +266,11 @@ struct urCommandBufferKernelHandleUpdateTest
     virtual void SetUp() override {
 
         UUR_RETURN_ON_FATAL_FAILURE(urUpdatableCommandBufferExpTest::SetUp());
+
+        UUR_RETURN_ON_FATAL_FAILURE(
+            uur::command_buffer::checkCommandBufferUpdateSupport(
+                device,
+                UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_KERNEL_HANDLE));
 
         ur_device_usm_access_capability_flags_t shared_usm_flags;
         ASSERT_SUCCESS(
@@ -309,6 +371,42 @@ TEST_P(urCommandBufferKernelHandleUpdateTest, UpdateAgain) {
                                              nullptr, nullptr));
     ASSERT_SUCCESS(urQueueFinish(queue));
     ASSERT_NO_FATAL_FAILURE(FillUSM2DKernel->validate());
+}
+
+/* Test that it is possible to change the kernel handle in a command and later restore it to the original handle */
+TEST_P(urCommandBufferKernelHandleUpdateTest, RestoreOriginalKernel) {
+
+    std::vector<ur_kernel_handle_t> KernelAlternatives = {
+        FillUSM2DKernel->Kernel};
+
+    uur::raii::CommandBufferCommand CommandHandle;
+    ASSERT_SUCCESS(urCommandBufferAppendKernelLaunchExp(
+        updatable_cmd_buf_handle, SaxpyKernel->Kernel, SaxpyKernel->NDimensions,
+        &(SaxpyKernel->GlobalOffset), &(SaxpyKernel->GlobalSize),
+        &(SaxpyKernel->LocalSize), KernelAlternatives.size(),
+        KernelAlternatives.data(), 0, nullptr, nullptr, CommandHandle.ptr()));
+    ASSERT_NE(CommandHandle, nullptr);
+
+    ASSERT_SUCCESS(urCommandBufferFinalizeExp(updatable_cmd_buf_handle));
+    ASSERT_SUCCESS(urCommandBufferEnqueueExp(updatable_cmd_buf_handle, queue, 0,
+                                             nullptr, nullptr));
+    ASSERT_SUCCESS(urCommandBufferUpdateKernelLaunchExp(
+        CommandHandle, &FillUSM2DKernel->UpdateDesc));
+    ASSERT_SUCCESS(urCommandBufferEnqueueExp(updatable_cmd_buf_handle, queue, 0,
+                                             nullptr, nullptr));
+    ASSERT_SUCCESS(urQueueFinish(queue));
+
+    ASSERT_NO_FATAL_FAILURE(SaxpyKernel->validate());
+    ASSERT_NO_FATAL_FAILURE(FillUSM2DKernel->validate());
+
+    // Updating A, so that the second launch of the saxpy kernel actually has a different output.
+    SaxpyKernel->A = 20;
+    ASSERT_SUCCESS(urCommandBufferUpdateKernelLaunchExp(
+        CommandHandle, &SaxpyKernel->UpdateDesc));
+    ASSERT_SUCCESS(urCommandBufferEnqueueExp(updatable_cmd_buf_handle, queue, 0,
+                                             nullptr, nullptr));
+    ASSERT_SUCCESS(urQueueFinish(queue));
+    ASSERT_NO_FATAL_FAILURE(SaxpyKernel->validate());
 }
 
 TEST_P(urCommandBufferKernelHandleUpdateTest, KernelAlternativeNotRegistered) {

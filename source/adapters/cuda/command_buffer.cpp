@@ -864,12 +864,20 @@ UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferReleaseCommandExp(
   return commandHandleReleaseInternal(hCommand);
 }
 
-UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(
-    ur_exp_command_buffer_command_handle_t hCommand,
-    const ur_exp_command_buffer_update_kernel_launch_desc_t
-        *pUpdateKernelLaunch) {
+/**
+ * Validates contents of the update command description.
+ * @param[in] Command The command which is being updated.
+ * @param[in] UpdateCommandDesc The update command description.
+ * @return UR_RESULT_SUCCESS or an error code on failure
+ */
+ur_result_t
+validateCommandDesc(ur_exp_command_buffer_command_handle_t Command,
+                    const ur_exp_command_buffer_update_kernel_launch_desc_t
+                        *UpdateCommandDesc) {
+
+  auto CommandBuffer = Command->CommandBuffer;
+
   // Update requires command-buffer to be finalized
-  ur_exp_command_buffer_handle_t CommandBuffer = hCommand->CommandBuffer;
   if (!CommandBuffer->CudaGraphExec) {
     return UR_RESULT_ERROR_INVALID_OPERATION;
   }
@@ -879,38 +887,61 @@ UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(
     return UR_RESULT_ERROR_INVALID_OPERATION;
   }
 
-  if (pUpdateKernelLaunch->newWorkDim) {
+  const uint32_t NewWorkDim = UpdateCommandDesc->newWorkDim;
+  if (!NewWorkDim && Command->Kernel != UpdateCommandDesc->hNewKernel) {
+    return UR_RESULT_ERROR_INVALID_OPERATION;
+  }
+
+  if (NewWorkDim) {
+    UR_ASSERT(NewWorkDim > 0, UR_RESULT_ERROR_INVALID_WORK_DIMENSION);
+    UR_ASSERT(NewWorkDim < 4, UR_RESULT_ERROR_INVALID_WORK_DIMENSION);
+
+    if (NewWorkDim != Command->WorkDim &&
+        Command->Kernel == UpdateCommandDesc->hNewKernel) {
+      return UR_RESULT_ERROR_INVALID_OPERATION;
+    }
 
     // Error If Local size and not global size
-    if ((pUpdateKernelLaunch->pNewLocalWorkSize != nullptr) &&
-        (pUpdateKernelLaunch->pNewGlobalWorkSize == nullptr)) {
+    if ((UpdateCommandDesc->pNewLocalWorkSize != nullptr) &&
+        (UpdateCommandDesc->pNewGlobalWorkSize == nullptr)) {
       return UR_RESULT_ERROR_INVALID_OPERATION;
     }
 
     // Error if local size non-nullptr and created with null
     // or if local size nullptr and created with non-null
     const bool IsNewLocalSizeNull =
-        pUpdateKernelLaunch->pNewLocalWorkSize == nullptr;
-    const bool IsOriginalLocalSizeNull = hCommand->isNullLocalSize();
+        UpdateCommandDesc->pNewLocalWorkSize == nullptr;
+    const bool IsOriginalLocalSizeNull = Command->isNullLocalSize();
 
     if (IsNewLocalSizeNull ^ IsOriginalLocalSizeNull) {
       return UR_RESULT_ERROR_INVALID_OPERATION;
     }
   }
 
-  // Kernel corresponding to the command to update
-  ur_kernel_handle_t NewKernel = pUpdateKernelLaunch->hNewKernel;
-
-  if (hCommand->ValidKernelHandles.count(NewKernel)) {
-    hCommand->Kernel = NewKernel;
-  } else {
+  if (!Command->ValidKernelHandles.count(UpdateCommandDesc->hNewKernel)) {
     return UR_RESULT_ERROR_INVALID_VALUE;
   }
+  return UR_RESULT_SUCCESS;
+}
+
+/**
+ * Updates the arguments of CommandDesc->hNewKernel
+ * @param[in] Device The device associated with the kernel being updated.
+ * @param[in] UpdateCommandDesc The update command description that contains the
+ * new kernel and its arguments.
+ * @return UR_RESULT_SUCCESS or an error code on failure
+ */
+ur_result_t
+updateKernelArguments(ur_device_handle_t Device,
+                      const ur_exp_command_buffer_update_kernel_launch_desc_t
+                          *UpdateCommandDesc) {
+
+  ur_kernel_handle_t NewKernel = UpdateCommandDesc->hNewKernel;
 
   // Update pointer arguments to the kernel
-  uint32_t NumPointerArgs = pUpdateKernelLaunch->numNewPointerArgs;
+  uint32_t NumPointerArgs = UpdateCommandDesc->numNewPointerArgs;
   const ur_exp_command_buffer_update_pointer_arg_desc_t *ArgPointerList =
-      pUpdateKernelLaunch->pNewPointerArgList;
+      UpdateCommandDesc->pNewPointerArgList;
   for (uint32_t i = 0; i < NumPointerArgs; i++) {
     const auto &PointerArgDesc = ArgPointerList[i];
     uint32_t ArgIndex = PointerArgDesc.argIndex;
@@ -926,9 +957,9 @@ UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(
   }
 
   // Update memobj arguments to the kernel
-  uint32_t NumMemobjArgs = pUpdateKernelLaunch->numNewMemObjArgs;
+  uint32_t NumMemobjArgs = UpdateCommandDesc->numNewMemObjArgs;
   const ur_exp_command_buffer_update_memobj_arg_desc_t *ArgMemobjList =
-      pUpdateKernelLaunch->pNewMemObjArgList;
+      UpdateCommandDesc->pNewMemObjArgList;
   for (uint32_t i = 0; i < NumMemobjArgs; i++) {
     const auto &MemobjArgDesc = ArgMemobjList[i];
     uint32_t ArgIndex = MemobjArgDesc.argIndex;
@@ -939,8 +970,7 @@ UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(
       if (ArgValue == nullptr) {
         NewKernel->setKernelArg(ArgIndex, 0, nullptr);
       } else {
-        CUdeviceptr CuPtr =
-            std::get<BufferMem>(ArgValue->Mem).getPtr(CommandBuffer->Device);
+        CUdeviceptr CuPtr = std::get<BufferMem>(ArgValue->Mem).getPtr(Device);
         NewKernel->setKernelArg(ArgIndex, sizeof(CUdeviceptr), (void *)&CuPtr);
       }
     } catch (ur_result_t Err) {
@@ -950,9 +980,9 @@ UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(
   }
 
   // Update value arguments to the kernel
-  uint32_t NumValueArgs = pUpdateKernelLaunch->numNewValueArgs;
+  uint32_t NumValueArgs = UpdateCommandDesc->numNewValueArgs;
   const ur_exp_command_buffer_update_value_arg_desc_t *ArgValueList =
-      pUpdateKernelLaunch->pNewValueArgList;
+      UpdateCommandDesc->pNewValueArgList;
   for (uint32_t i = 0; i < NumValueArgs; i++) {
     const auto &ValueArgDesc = ArgValueList[i];
     uint32_t ArgIndex = ValueArgDesc.argIndex;
@@ -960,7 +990,6 @@ UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(
     const void *ArgValue = ValueArgDesc.pNewValueArg;
 
     ur_result_t Result = UR_RESULT_SUCCESS;
-
     try {
       NewKernel->setKernelArg(ArgIndex, ArgSize, ArgValue);
     } catch (ur_result_t Err) {
@@ -969,45 +998,68 @@ UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(
     }
   }
 
-  // Set the updated ND range
-  const uint32_t NewWorkDim = pUpdateKernelLaunch->newWorkDim;
-  if (NewWorkDim != 0) {
-    UR_ASSERT(NewWorkDim > 0, UR_RESULT_ERROR_INVALID_WORK_DIMENSION);
-    UR_ASSERT(NewWorkDim < 4, UR_RESULT_ERROR_INVALID_WORK_DIMENSION);
-    hCommand->WorkDim = NewWorkDim;
+  return UR_RESULT_SUCCESS;
+}
+
+/**
+ * Updates the command buffer command with new values from the update
+ * description.
+ * @param[in] Command The command to be updated.
+ * @param[in] UpdateCommandDesc The update command description.
+ * @return UR_RESULT_SUCCESS or an error code on failure
+ */
+ur_result_t
+updateCommand(ur_exp_command_buffer_command_handle_t Command,
+              const ur_exp_command_buffer_update_kernel_launch_desc_t
+                  *UpdateCommandDesc) {
+
+  Command->Kernel = UpdateCommandDesc->hNewKernel;
+
+  if (UpdateCommandDesc->newWorkDim) {
+    Command->WorkDim = UpdateCommandDesc->newWorkDim;
   }
 
-  if (pUpdateKernelLaunch->pNewGlobalWorkOffset) {
-    hCommand->setGlobalOffset(pUpdateKernelLaunch->pNewGlobalWorkOffset);
+  if (UpdateCommandDesc->pNewGlobalWorkOffset) {
+    Command->setGlobalOffset(UpdateCommandDesc->pNewGlobalWorkOffset);
   }
 
-  if (pUpdateKernelLaunch->pNewGlobalWorkSize) {
-    hCommand->setGlobalSize(pUpdateKernelLaunch->pNewGlobalWorkSize);
+  if (UpdateCommandDesc->pNewGlobalWorkSize) {
+    Command->setGlobalSize(UpdateCommandDesc->pNewGlobalWorkSize);
   }
 
-  if (pUpdateKernelLaunch->pNewLocalWorkSize) {
-    hCommand->setLocalSize(pUpdateKernelLaunch->pNewLocalWorkSize);
+  if (UpdateCommandDesc->pNewLocalWorkSize) {
+    Command->setLocalSize(UpdateCommandDesc->pNewLocalWorkSize);
   }
 
-  size_t *GlobalWorkOffset = hCommand->GlobalWorkOffset;
-  size_t *GlobalWorkSize = hCommand->GlobalWorkSize;
+  return UR_RESULT_SUCCESS;
+}
 
-  // If no worksize is provided make sure we pass nullptr to setKernelParams so
+UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(
+    ur_exp_command_buffer_command_handle_t hCommand,
+    const ur_exp_command_buffer_update_kernel_launch_desc_t
+        *pUpdateKernelLaunch) {
+
+  ur_exp_command_buffer_handle_t CommandBuffer = hCommand->CommandBuffer;
+
+  UR_CHECK_ERROR(validateCommandDesc(hCommand, pUpdateKernelLaunch));
+  UR_CHECK_ERROR(
+      updateKernelArguments(CommandBuffer->Device, pUpdateKernelLaunch));
+  UR_CHECK_ERROR(updateCommand(hCommand, pUpdateKernelLaunch));
+
+  // If no work-size is provided make sure we pass nullptr to setKernelParams so
   // it can guess the local work size.
   const bool ProvidedLocalSize = !hCommand->isNullLocalSize();
   size_t *LocalWorkSize = ProvidedLocalSize ? hCommand->LocalWorkSize : nullptr;
-  uint32_t WorkDim = hCommand->WorkDim;
 
   // Set the number of threads per block to the number of threads per warp
-  // by default unless user has provided a better number
+  // by default unless user has provided a better number.
   size_t ThreadsPerBlock[3] = {32u, 1u, 1u};
   size_t BlocksPerGrid[3] = {1u, 1u, 1u};
-  CUfunction CuFunc = NewKernel->get();
-  ur_context_handle_t Context = CommandBuffer->Context;
-  ur_device_handle_t Device = CommandBuffer->Device;
-  auto Result = setKernelParams(Context, Device, WorkDim, GlobalWorkOffset,
-                                GlobalWorkSize, LocalWorkSize, NewKernel,
-                                CuFunc, ThreadsPerBlock, BlocksPerGrid);
+  CUfunction CuFunc = hCommand->Kernel->get();
+  auto Result = setKernelParams(
+      CommandBuffer->Context, CommandBuffer->Device, hCommand->WorkDim,
+      hCommand->GlobalWorkOffset, hCommand->GlobalWorkSize, LocalWorkSize,
+      hCommand->Kernel, CuFunc, ThreadsPerBlock, BlocksPerGrid);
   if (Result != UR_RESULT_SUCCESS) {
     return Result;
   }
@@ -1021,8 +1073,9 @@ UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(
   Params.blockDimX = ThreadsPerBlock[0];
   Params.blockDimY = ThreadsPerBlock[1];
   Params.blockDimZ = ThreadsPerBlock[2];
-  Params.sharedMemBytes = NewKernel->getLocalSize();
-  Params.kernelParams = const_cast<void **>(NewKernel->getArgIndices().data());
+  Params.sharedMemBytes = hCommand->Kernel->getLocalSize();
+  Params.kernelParams =
+      const_cast<void **>(hCommand->Kernel->getArgIndices().data());
 
   CUgraphNode Node = hCommand->Node;
   CUgraphExec CudaGraphExec = CommandBuffer->CudaGraphExec;
