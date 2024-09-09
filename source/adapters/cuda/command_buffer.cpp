@@ -887,35 +887,9 @@ validateCommandDesc(ur_exp_command_buffer_command_handle_t Command,
     return UR_RESULT_ERROR_INVALID_OPERATION;
   }
 
-  const uint32_t NewWorkDim = UpdateCommandDesc->newWorkDim;
-  if (!NewWorkDim && Command->Kernel != UpdateCommandDesc->hNewKernel) {
+  if (UpdateCommandDesc->newWorkDim != Command->WorkDim &&
+      Command->Kernel == UpdateCommandDesc->hNewKernel) {
     return UR_RESULT_ERROR_INVALID_OPERATION;
-  }
-
-  if (NewWorkDim) {
-    UR_ASSERT(NewWorkDim > 0, UR_RESULT_ERROR_INVALID_WORK_DIMENSION);
-    UR_ASSERT(NewWorkDim < 4, UR_RESULT_ERROR_INVALID_WORK_DIMENSION);
-
-    if (NewWorkDim != Command->WorkDim &&
-        Command->Kernel == UpdateCommandDesc->hNewKernel) {
-      return UR_RESULT_ERROR_INVALID_OPERATION;
-    }
-
-    // Error If Local size and not global size
-    if ((UpdateCommandDesc->pNewLocalWorkSize != nullptr) &&
-        (UpdateCommandDesc->pNewGlobalWorkSize == nullptr)) {
-      return UR_RESULT_ERROR_INVALID_OPERATION;
-    }
-
-    // Error if local size non-nullptr and created with null
-    // or if local size nullptr and created with non-null
-    const bool IsNewLocalSizeNull =
-        UpdateCommandDesc->pNewLocalWorkSize == nullptr;
-    const bool IsOriginalLocalSizeNull = Command->isNullLocalSize();
-
-    if (IsNewLocalSizeNull ^ IsOriginalLocalSizeNull) {
-      return UR_RESULT_ERROR_INVALID_OPERATION;
-    }
   }
 
   if (!Command->ValidKernelHandles.count(UpdateCommandDesc->hNewKernel)) {

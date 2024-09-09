@@ -71,7 +71,7 @@ struct USMFillCommandTest
     static constexpr size_t local_size = 4;
     static constexpr size_t global_size = 32;
     static constexpr size_t global_offset = 0;
-    static constexpr size_t n_dimensions = 1;
+    static constexpr uint32_t n_dimensions = 1;
     static constexpr size_t allocation_size = sizeof(val) * global_size;
     void *shared_ptr = nullptr;
     void *new_shared_ptr = nullptr;
@@ -120,17 +120,17 @@ TEST_P(USMFillCommandTest, UpdateParameters) {
     ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,                              // hNewKernel
-        0,                                   // numNewMemObjArgs
-        1,                                   // numNewPointerArgs
-        1,                                   // numNewValueArgs
-        static_cast<uint32_t>(n_dimensions), // newWorkDim
-        nullptr,                             // pNewMemObjArgList
-        &new_output_desc,                    // pNewPointerArgList
-        &new_input_desc,                     // pNewValueArgList
-        nullptr,                             // pNewGlobalWorkOffset
-        &new_global_size,                    // pNewGlobalWorkSize
-        &new_local_size,                     // pNewLocalWorkSize
+        kernel,           // hNewKernel
+        0,                // numNewMemObjArgs
+        1,                // numNewPointerArgs
+        1,                // numNewValueArgs
+        n_dimensions,     // newWorkDim
+        nullptr,          // pNewMemObjArgList
+        &new_output_desc, // pNewPointerArgList
+        &new_input_desc,  // pNewValueArgList
+        nullptr,          // pNewGlobalWorkOffset
+        &new_global_size, // pNewGlobalWorkSize
+        &new_local_size,  // pNewLocalWorkSize
     };
 
     // Update kernel and enqueue command-buffer again
@@ -178,7 +178,7 @@ TEST_P(USMFillCommandTest, UpdateBeforeEnqueue) {
         0,                // numNewMemObjArgs
         1,                // numNewPointerArgs
         1,                // numNewValueArgs
-        0,                // newWorkDim
+        n_dimensions,     // newWorkDim
         nullptr,          // pNewMemObjArgList
         &new_output_desc, // pNewPointerArgList
         &new_input_desc,  // pNewValueArgList
@@ -330,7 +330,7 @@ TEST_P(USMMultipleFillCommandTest, UpdateAllKernels) {
             0,                // numNewMemObjArgs
             1,                // numNewPointerArgs
             1,                // numNewValueArgs
-            0,                // newWorkDim
+            n_dimensions,     // newWorkDim
             nullptr,          // pNewMemObjArgList
             &new_output_desc, // pNewPointerArgList
             &new_input_desc,  // pNewValueArgList

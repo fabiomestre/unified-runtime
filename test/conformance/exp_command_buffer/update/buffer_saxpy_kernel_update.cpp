@@ -131,7 +131,7 @@ struct BufferSaxpyKernelTest
     static constexpr size_t local_size = 4;
     static constexpr size_t global_size = 32;
     static constexpr size_t global_offset = 0;
-    static constexpr size_t n_dimensions = 1;
+    static constexpr uint32_t n_dimensions = 1;
     static constexpr uint32_t A = 42;
     std::array<ur_mem_handle_t, 5> buffers = {nullptr, nullptr, nullptr,
                                               nullptr};
@@ -189,7 +189,7 @@ TEST_P(BufferSaxpyKernelTest, UpdateParameters) {
         2,               // numNewMemObjArgs
         0,               // numNewPointerArgs
         1,               // numNewValueArgs
-        0,               // newWorkDim
+        n_dimensions,    // newWorkDim
         new_input_descs, // pNewMemObjArgList
         nullptr,         // pNewPointerArgList
         &new_A_desc,     // pNewValueArgList

@@ -152,7 +152,7 @@ TEST_P(USMSaxpyKernelTest, UpdateParameters) {
         0,               // numNewMemObjArgs
         2,               // numNewPointerArgs
         1,               // numNewValueArgs
-        0,               // newWorkDim
+        n_dimensions,    // newWorkDim
         nullptr,         // pNewMemObjArgList
         new_input_descs, // pNewPointerArgList
         &new_A_desc,     // pNewValueArgList
@@ -258,7 +258,7 @@ TEST_P(USMMultiSaxpyKernelTest, UpdateParameters) {
         0,               // numNewMemObjArgs
         2,               // numNewPointerArgs
         1,               // numNewValueArgs
-        0,               // newWorkDim
+        n_dimensions,    // newWorkDim
         nullptr,         // pNewMemObjArgList
         new_input_descs, // pNewPointerArgList
         &new_A_desc,     // pNewValueArgList
@@ -324,7 +324,7 @@ TEST_P(USMMultiSaxpyKernelTest, UpdateWithoutBlocking) {
         0,               // numNewMemObjArgs
         2,               // numNewPointerArgs
         1,               // numNewValueArgs
-        0,               // newWorkDim
+        n_dimensions,    // newWorkDim
         nullptr,         // pNewMemObjArgList
         new_input_descs, // pNewPointerArgList
         &new_A_desc,     // pNewValueArgList

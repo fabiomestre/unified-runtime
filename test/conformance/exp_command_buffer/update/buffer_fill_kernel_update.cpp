@@ -73,7 +73,7 @@ struct BufferFillCommandTest
     static constexpr size_t local_size = 4;
     static constexpr size_t global_size = 32;
     static constexpr size_t global_offset = 0;
-    static constexpr size_t n_dimensions = 1;
+    static constexpr uint32_t n_dimensions = 1;
     static constexpr size_t buffer_size = sizeof(val) * global_size;
     ur_mem_handle_t buffer = nullptr;
     ur_mem_handle_t new_buffer = nullptr;
@@ -128,7 +128,7 @@ TEST_P(BufferFillCommandTest, UpdateParameters) {
         1,                // numNewMemObjArgs
         0,                // numNewPointerArgs
         1,                // numNewValueArgs
-        0,                // newWorkDim
+        n_dimensions,     // newWorkDim
         &new_output_desc, // pNewMemObjArgList
         nullptr,          // pNewPointerArgList
         &new_input_desc,  // pNewValueArgList
@@ -181,7 +181,7 @@ TEST_P(BufferFillCommandTest, UpdateGlobalSize) {
         1,                // numNewMemObjArgs
         0,                // numNewPointerArgs
         0,                // numNewValueArgs
-        1,                // newWorkDim
+        n_dimensions,     // newWorkDim
         &new_output_desc, // pNewMemObjArgList
         nullptr,          // pNewPointerArgList
         nullptr,          // pNewValueArgList
@@ -232,7 +232,7 @@ TEST_P(BufferFillCommandTest, SeparateUpdateCalls) {
         1,                // numNewMemObjArgs
         0,                // numNewPointerArgs
         0,                // numNewValueArgs
-        0,                // newWorkDim
+        n_dimensions,     // newWorkDim
         &new_output_desc, // pNewMemObjArgList
         nullptr,          // pNewPointerArgList
         nullptr,          // pNewValueArgList
@@ -261,7 +261,7 @@ TEST_P(BufferFillCommandTest, SeparateUpdateCalls) {
         0,               // numNewMemObjArgs
         0,               // numNewPointerArgs
         1,               // numNewValueArgs
-        0,               // newWorkDim
+        n_dimensions,    // newWorkDim
         nullptr,         // pNewMemObjArgList
         nullptr,         // pNewPointerArgList
         &new_input_desc, // pNewValueArgList
@@ -276,17 +276,17 @@ TEST_P(BufferFillCommandTest, SeparateUpdateCalls) {
     ur_exp_command_buffer_update_kernel_launch_desc_t global_size_update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,                              // hNewKernel
-        0,                                   // numNewMemObjArgs
-        0,                                   // numNewPointerArgs
-        0,                                   // numNewValueArgs
-        static_cast<uint32_t>(n_dimensions), // newWorkDim
-        nullptr,                             // pNewMemObjArgList
-        nullptr,                             // pNewPointerArgList
-        nullptr,                             // pNewValueArgList
-        nullptr,                             // pNewGlobalWorkOffset
-        &new_global_size,                    // pNewGlobalWorkSize
-        &new_local_size,                     // pNewLocalWorkSize
+        kernel,           // hNewKernel
+        0,                // numNewMemObjArgs
+        0,                // numNewPointerArgs
+        0,                // numNewValueArgs
+        n_dimensions,     // newWorkDim
+        nullptr,          // pNewMemObjArgList
+        nullptr,          // pNewPointerArgList
+        nullptr,          // pNewValueArgList
+        nullptr,          // pNewGlobalWorkOffset
+        &new_global_size, // pNewGlobalWorkSize
+        &new_local_size,  // pNewLocalWorkSize
     };
 
     ASSERT_SUCCESS(urCommandBufferUpdateKernelLaunchExp(
@@ -325,7 +325,7 @@ TEST_P(BufferFillCommandTest, OverrideUpdate) {
         0,                 // numNewMemObjArgs
         0,                 // numNewPointerArgs
         1,                 // numNewValueArgs
-        0,                 // newWorkDim
+        n_dimensions,      // newWorkDim
         nullptr,           // pNewMemObjArgList
         nullptr,           // pNewPointerArgList
         &first_input_desc, // pNewValueArgList
@@ -353,7 +353,7 @@ TEST_P(BufferFillCommandTest, OverrideUpdate) {
         0,                  // numNewMemObjArgs
         0,                  // numNewPointerArgs
         1,                  // numNewValueArgs
-        0,                  // newWorkDim
+        n_dimensions,       // newWorkDim
         nullptr,            // pNewMemObjArgList
         nullptr,            // pNewPointerArgList
         &second_input_desc, // pNewValueArgList
@@ -406,17 +406,17 @@ TEST_P(BufferFillCommandTest, OverrideArgList) {
     ur_exp_command_buffer_update_kernel_launch_desc_t second_update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,      // hNewKernel
-        0,           // numNewMemObjArgs
-        0,           // numNewPointerArgs
-        2,           // numNewValueArgs
-        0,           // newWorkDim
-        nullptr,     // pNewMemObjArgList
-        nullptr,     // pNewPointerArgList
-        input_descs, // pNewValueArgList
-        nullptr,     // pNewGlobalWorkOffset
-        nullptr,     // pNewGlobalWorkSize
-        nullptr,     // pNewLocalWorkSize
+        kernel,       // hNewKernel
+        0,            // numNewMemObjArgs
+        0,            // numNewPointerArgs
+        2,            // numNewValueArgs
+        n_dimensions, // newWorkDim
+        nullptr,      // pNewMemObjArgList
+        nullptr,      // pNewPointerArgList
+        input_descs,  // pNewValueArgList
+        nullptr,      // pNewGlobalWorkOffset
+        nullptr,      // pNewGlobalWorkSize
+        nullptr,      // pNewLocalWorkSize
     };
 
     ASSERT_SUCCESS(urCommandBufferUpdateKernelLaunchExp(command_handle,

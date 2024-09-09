@@ -48,9 +48,9 @@ commandHandleReleaseInternal(ur_exp_command_buffer_command_handle_t Command) {
 
 ur_exp_command_buffer_handle_t_::ur_exp_command_buffer_handle_t_(
     ur_context_handle_t hContext, ur_device_handle_t hDevice, bool IsUpdatable)
-    : Context(hContext), Device(hDevice), IsUpdatable(IsUpdatable),
-      HIPGraph{nullptr}, HIPGraphExec{nullptr}, RefCountInternal{1},
-      RefCountExternal{1}, NextSyncPoint{0} {
+    : Context(hContext), Device(hDevice),
+      IsUpdatable(IsUpdatable), HIPGraph{nullptr}, HIPGraphExec{nullptr},
+      RefCountInternal{1}, RefCountExternal{1}, NextSyncPoint{0} {
   urContextRetain(hContext);
   urDeviceRetain(hDevice);
 }
@@ -330,8 +330,14 @@ UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferAppendKernelLaunchExp(
             UR_RESULT_ERROR_INVALID_KERNEL);
   UR_ASSERT(workDim > 0, UR_RESULT_ERROR_INVALID_WORK_DIMENSION);
   UR_ASSERT(workDim < 4, UR_RESULT_ERROR_INVALID_WORK_DIMENSION);
+
   UR_ASSERT(!(pSyncPointWaitList == NULL && numSyncPointsInWaitList > 0),
             UR_RESULT_ERROR_INVALID_EVENT_WAIT_LIST);
+
+  for (uint32_t i = 0; i < numKernelAlternatives; ++i) {
+    UR_ASSERT(phKernelAlternatives[i] != hKernel,
+              UR_RESULT_ERROR_INVALID_VALUE);
+  }
 
   hipGraphNode_t GraphNode;
   std::vector<hipGraphNode_t> DepsList;
@@ -866,35 +872,9 @@ validateCommandDesc(ur_exp_command_buffer_command_handle_t Command,
     return UR_RESULT_ERROR_INVALID_OPERATION;
   }
 
-  const uint32_t NewWorkDim = UpdateCommandDesc->newWorkDim;
-  if (!NewWorkDim && Command->Kernel != UpdateCommandDesc->hNewKernel) {
+  if (UpdateCommandDesc->newWorkDim != Command->WorkDim &&
+      Command->Kernel == UpdateCommandDesc->hNewKernel) {
     return UR_RESULT_ERROR_INVALID_OPERATION;
-  }
-
-  if (NewWorkDim) {
-    UR_ASSERT(NewWorkDim > 0, UR_RESULT_ERROR_INVALID_WORK_DIMENSION);
-    UR_ASSERT(NewWorkDim < 4, UR_RESULT_ERROR_INVALID_WORK_DIMENSION);
-
-    if (NewWorkDim != Command->WorkDim &&
-        Command->Kernel == UpdateCommandDesc->hNewKernel) {
-      return UR_RESULT_ERROR_INVALID_OPERATION;
-    }
-
-    // Error If Local size and not global size
-    if ((UpdateCommandDesc->pNewLocalWorkSize != nullptr) &&
-        (UpdateCommandDesc->pNewGlobalWorkSize == nullptr)) {
-      return UR_RESULT_ERROR_INVALID_OPERATION;
-    }
-
-    // Error if local size non-nullptr and created with null
-    // or if local size nullptr and created with non-null
-    const bool IsNewLocalSizeNull =
-        UpdateCommandDesc->pNewLocalWorkSize == nullptr;
-    const bool IsOriginalLocalSizeNull = Command->isNullLocalSize();
-
-    if (IsNewLocalSizeNull ^ IsOriginalLocalSizeNull) {
-      return UR_RESULT_ERROR_INVALID_OPERATION;
-    }
   }
 
   if (!Command->ValidKernelHandles.count(UpdateCommandDesc->hNewKernel)) {
@@ -907,8 +887,8 @@ validateCommandDesc(ur_exp_command_buffer_command_handle_t Command,
 /**
  * Updates the arguments of CommandDesc->hNewKernel
  * @param[in] Device The device associated with the kernel being updated.
- * @param[in] UpdateCommandDesc The update command description that contains the
- * new kernel and its arguments.
+ * @param[in] UpdateCommandDesc The update command description that contains
+ * the new kernel and its arguments.
  * @return UR_RESULT_SUCCESS or an error code on failure
  */
 ur_result_t
@@ -1020,8 +1000,8 @@ UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(
       updateKernelArguments(CommandBuffer->Device, pUpdateKernelLaunch));
   UR_CHECK_ERROR(updateCommand(hCommand, pUpdateKernelLaunch));
 
-  // If no worksize is provided make sure we pass nullptr to setKernelParams so
-  // it can guess the local work size.
+  // If no worksize is provided make sure we pass nullptr to setKernelParams
+  // so it can guess the local work size.
   const bool ProvidedLocalSize = !hCommand->isNullLocalSize();
   size_t *LocalWorkSize = ProvidedLocalSize ? hCommand->LocalWorkSize : nullptr;
 

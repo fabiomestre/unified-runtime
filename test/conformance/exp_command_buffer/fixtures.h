@@ -148,6 +148,9 @@ struct urUpdatableCommandBufferExpExecutionTest : uur::urKernelExecutionTest {
     void SetUp() override {
         UUR_RETURN_ON_FATAL_FAILURE(uur::urKernelExecutionTest::SetUp());
 
+        ASSERT_SUCCESS(urPlatformGetInfo(platform, UR_PLATFORM_INFO_BACKEND,
+                                         sizeof(backend), &backend, nullptr));
+
         UUR_RETURN_ON_FATAL_FAILURE(checkCommandBufferSupport(device));
         auto requiredCapabilities =
             UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_KERNEL_ARGUMENTS |

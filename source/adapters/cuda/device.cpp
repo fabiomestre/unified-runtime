@@ -1088,7 +1088,6 @@ UR_APIEXPORT ur_result_t UR_APICALL urDeviceGetInfo(ur_device_handle_t hDevice,
     return UR_RESULT_ERROR_UNSUPPORTED_ENUMERATION;
 
   case UR_DEVICE_INFO_COMMAND_BUFFER_SUPPORT_EXP:
-    /*case UR_DEVICE_INFO_COMMAND_BUFFER_UPDATE_SUPPORT_EXP:*/
     return ReturnValue(true);
   case UR_DEVICE_INFO_COMMAND_BUFFER_UPDATE_CAPABILITIES_EXP: {
     ur_device_command_buffer_update_capability_flags_t UpdateCapabilities =

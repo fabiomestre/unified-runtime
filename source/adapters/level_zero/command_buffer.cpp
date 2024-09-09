@@ -1320,27 +1320,15 @@ ur_result_t validateCommandDesc(
           ->mutableCommandFlags;
   logger::debug("Mutable features supported by device {}", SupportedFeatures);
 
-  uint32_t Dim = CommandDesc->newWorkDim;
-  if (Dim != 0) {
-    // Error if work dim changes
-    if (Dim != Command->WorkDim) {
-      return UR_RESULT_ERROR_INVALID_OPERATION;
-    }
+  // Kernel handle updates are not yet supported.
+  if (CommandDesc->hNewKernel != Command->Kernel) {
+    return UR_RESULT_ERROR_UNSUPPORTED_FEATURE;
+  }
 
-    // Error If Local size and not global size
-    if ((CommandDesc->pNewLocalWorkSize != nullptr) &&
-        (CommandDesc->pNewGlobalWorkSize == nullptr)) {
-      return UR_RESULT_ERROR_INVALID_OPERATION;
-    }
-
-    // Error if local size non-nullptr and created with null
-    // or if local size nullptr and created with non-null
-    const bool IsNewLocalSizeNull = CommandDesc->pNewLocalWorkSize == nullptr;
-    const bool IsOriginalLocalSizeNull = !Command->UserDefinedLocalSize;
-
-    if (IsNewLocalSizeNull ^ IsOriginalLocalSizeNull) {
-      return UR_RESULT_ERROR_INVALID_OPERATION;
-    }
+  // Error if work dim changes
+  if (CommandDesc->hNewKernel == Command->Kernel &&
+      CommandDesc->newWorkDim != Command->WorkDim) {
+    return UR_RESULT_ERROR_INVALID_OPERATION;
   }
 
   // Check if new global offset is provided.
@@ -1348,7 +1336,7 @@ ur_result_t validateCommandDesc(
   UR_ASSERT(!NewGlobalWorkOffset ||
                 (SupportedFeatures & ZE_MUTABLE_COMMAND_EXP_FLAG_GLOBAL_OFFSET),
             UR_RESULT_ERROR_UNSUPPORTED_FEATURE);
-  if (NewGlobalWorkOffset && Dim > 0) {
+  if (NewGlobalWorkOffset) {
     if (!CommandBuffer->Context->getPlatform()
              ->ZeDriverGlobalOffsetExtensionFound) {
       logger::error("No global offset extension found on this driver");
@@ -1618,8 +1606,6 @@ ur_result_t urCommandBufferUpdateKernelLaunchExp(
     ur_exp_command_buffer_command_handle_t Command,
     const ur_exp_command_buffer_update_kernel_launch_desc_t *CommandDesc) {
   UR_ASSERT(Command->Kernel, UR_RESULT_ERROR_INVALID_NULL_HANDLE);
-  UR_ASSERT(CommandDesc->newWorkDim <= 3,
-            UR_RESULT_ERROR_INVALID_WORK_DIMENSION);
 
   // Lock command, kernel and command buffer for update.
   std::scoped_lock<ur_shared_mutex, ur_shared_mutex, ur_shared_mutex> Guard(

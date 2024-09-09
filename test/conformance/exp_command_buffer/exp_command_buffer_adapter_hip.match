@@ -1,4 +1,0 @@
-urCommandBufferKernelHandleUpdateTest.Success/AMD_HIP_BACKEND___{{.*}}_
-urCommandBufferKernelHandleUpdateTest.UpdateAgain/AMD_HIP_BACKEND___{{.*}}_
-urCommandBufferKernelHandleUpdateTest.KernelAlternativeNotRegistered/AMD_HIP_BACKEND___{{.*}}_
-urCommandBufferKernelHandleUpdateTest.RegisterInvalidKernelAlternative/AMD_HIP_BACKEND___{{.*}}_
