@@ -691,7 +691,7 @@ commandBufferFinalizeNew(ur_exp_command_buffer_handle_t CommandBuffer) {
   }
 
   // Wait for the Copy Queue to finish at the end of the compute command list.
-  if (CommandBuffer->useCopyEngine()) {
+  if (!CommandBuffer->MCopyCommandListEmpty) {
     ZE2UR_CALL(zeCommandListAppendEventReset,
                (CommandBuffer->ZeCommandListResetEvents,
                 CommandBuffer->CopyFinishedEvent->ZeEvent));
@@ -727,7 +727,7 @@ commandBufferFinalizeNew(ur_exp_command_buffer_handle_t CommandBuffer) {
   ZE2UR_CALL(zeCommandListClose, (CommandBuffer->ZeComputeCommandList));
   ZE2UR_CALL(zeCommandListClose, (CommandBuffer->ZeCommandListResetEvents));
 
-  if (CommandBuffer->useCopyEngine()) {
+  if (!CommandBuffer->MCopyCommandListEmpty) {
     ZE2UR_CALL(zeCommandListAppendSignalEvent,
                (CommandBuffer->ZeCopyCommandList,
                 CommandBuffer->CopyFinishedEvent->ZeEvent));
@@ -863,9 +863,9 @@ ur_result_t
 createCommandHandle(ur_exp_command_buffer_handle_t CommandBuffer,
                     ur_kernel_handle_t Kernel, uint32_t WorkDim,
                     const size_t *LocalWorkSize,
-                    ur_exp_command_buffer_command_handle_t &Command) {
+                    ur_exp_command_buffer_command_handle_t *Command) {
 
-  assert(CommandBuffer->IsUpdatable);
+   assert(CommandBuffer->IsUpdatable);
 
   // If command-buffer is updatable then get command id which is going to be
   // used if command is updated in the future. This
@@ -885,7 +885,7 @@ createCommandHandle(ur_exp_command_buffer_handle_t CommandBuffer,
   DEBUG_LOG(CommandId);
 
   try {
-    Command = new ur_exp_command_buffer_command_handle_t_(
+    *Command = new ur_exp_command_buffer_command_handle_t_(
         CommandBuffer, CommandId, WorkDim, LocalWorkSize != nullptr, Kernel);
   } catch (const std::bad_alloc &) {
     return UR_RESULT_ERROR_OUT_OF_HOST_MEMORY;
@@ -939,7 +939,7 @@ ur_result_t urCommandBufferAppendKernelLaunchExp(
 
   if (Command && CommandBuffer->IsUpdatable) {
     UR_CALL(createCommandHandle(CommandBuffer, Kernel, WorkDim, LocalWorkSize,
-                                *Command));
+                                Command));
   }
 
   std::vector<ze_event_handle_t> ZeEventList;
@@ -1391,7 +1391,7 @@ ur_result_t createUserEvent(ur_exp_command_buffer_handle_t CommandBuffer,
 }
 
 ur_result_t createProfilingCmdList(
-    ur_queue_handle_legacy_t Queue,
+    ur_queue_handle_t Queue,
     ur_exp_command_buffer_handle_t CommandBuffer, uint32_t NumEventsInWaitList,
     const ur_event_handle_t *EventWaitList, ur_event_handle_t &UserEvent,
     ze_command_list_handle_t &ProfilingCommandList) {
@@ -1440,7 +1440,7 @@ ur_result_t createProfilingCmdList(
  * @return
  */
 ur_result_t submitComputeEngineCmdLists(
-    ur_queue_handle_legacy_t Queue,
+    ur_queue_handle_t Queue,
     ur_exp_command_buffer_handle_t CommandBuffer, uint32_t NumEventsInWaitList,
     const ur_event_handle_t *EventWaitList, ur_event_handle_t *UserEvent) {
 
@@ -1485,6 +1485,13 @@ ur_result_t submitComputeEngineCmdLists(
               ComputeCommandLists.data(), (*Event)->ZeEvent,
               NumEventsInWaitList, UrZeEventList.ZeEventList));
 
+  // The events needs to be retained since it will be used internally as well
+  // be returned to the user.
+  if (!InternalEvent) {
+    UR_CALL(ur::level_zero::urEventRetain(*Event));
+  }
+  CommandBuffer->CurrentSubmissionEvent = *Event;
+
   UR_CALL(Queue->executeCommandList(ZeImmediateListHelper, false, false));
 
   return UR_RESULT_SUCCESS;
@@ -1503,7 +1510,7 @@ ur_result_t submitComputeEngineCmdLists(
  */
 ur_result_t
 submitCopyEngineCmdLists(ur_exp_command_buffer_handle_t CommandBuffer,
-                         ur_queue_handle_legacy_t Queue,
+                         ur_queue_handle_t Queue,
 
                          uint32_t NumEventsInWaitList,
                          const ur_event_handle_t *EventWaitList) {
@@ -1535,10 +1542,11 @@ submitCopyEngineCmdLists(ur_exp_command_buffer_handle_t CommandBuffer,
 
 ur_result_t
 commandBufferEnqueueNew(ur_exp_command_buffer_handle_t CommandBuffer,
-                        ur_queue_handle_t UrQueue, uint32_t NumEventsInWaitList,
+                        ur_queue_handle_t Queue, uint32_t NumEventsInWaitList,
                         const ur_event_handle_t *EventWaitList,
                         ur_event_handle_t *Event) {
-  auto Queue = Legacy(UrQueue);
+
+  // FIXME Should the command buffer mutex be locked as well?
   std::scoped_lock<ur_shared_mutex> Lock(Queue->Mutex);
 
   if (!CommandBuffer->MCopyCommandListEmpty) {
@@ -1554,10 +1562,10 @@ commandBufferEnqueueNew(ur_exp_command_buffer_handle_t CommandBuffer,
 
 ur_result_t
 commandBufferEnqueueOld(ur_exp_command_buffer_handle_t CommandBuffer,
-                        ur_queue_handle_t UrQueue, uint32_t NumEventsInWaitList,
+                        ur_queue_handle_t Queue, uint32_t NumEventsInWaitList,
                         const ur_event_handle_t *EventWaitList,
                         ur_event_handle_t *Event) {
-  auto Queue = Legacy(UrQueue);
+
   std::scoped_lock<ur_shared_mutex> Lock(Queue->Mutex);
 
   ze_command_queue_handle_t ZeCommandQueue;
@@ -1963,10 +1971,17 @@ ur_result_t urCommandBufferUpdateKernelLaunchExp(
 
   UR_CALL(validateCommandDesc(Command, CommandDesc));
 
-  // We must synchronize mutable command list execution before mutating.
-  // FIXME Is this needed for the new path?
-  if (ze_fence_handle_t &ZeFence = Command->CommandBuffer->ZeActiveFence) {
-    ZE2UR_CALL(zeFenceHostSynchronize, (ZeFence, UINT64_MAX));
+  // // We must synchronize mutable command list execution before mutating.
+  // // FIXME Is this needed for the new path?
+  // if (ze_fence_handle_t &ZeFence = Command->CommandBuffer->ZeActiveFence) {
+  //   ZE2UR_CALL(zeFenceHostSynchronize, (ZeFence, UINT64_MAX));
+  // }
+  ur_event_handle_t& CurrentSubmissionEvent = Command->CommandBuffer->CurrentSubmissionEvent;
+  if (CurrentSubmissionEvent) {
+    ZE2UR_CALL(zeEventHostSynchronize,
+               (CurrentSubmissionEvent->ZeEvent, UINT64_MAX));
+    UR_CALL(ur::level_zero::urEventRelease(CurrentSubmissionEvent));
+    CurrentSubmissionEvent = nullptr;
   }
 
   UR_CALL(updateKernelCommand(Command, CommandDesc));
