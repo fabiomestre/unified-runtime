@@ -505,7 +505,9 @@ UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(
   if (!hCommandBuffer->IsFinalized || !hCommandBuffer->IsUpdatable)
     return UR_RESULT_ERROR_INVALID_OPERATION;
 
-  if (pUpdateKernelLaunch->newWorkDim != hCommand->WorkDim) {
+  if (pUpdateKernelLaunch->newWorkDim != hCommand->WorkDim &&
+      (!pUpdateKernelLaunch->pNewGlobalWorkOffset ||
+       !pUpdateKernelLaunch->pNewGlobalWorkSize)) {
     return UR_RESULT_ERROR_INVALID_OPERATION;
   }
 

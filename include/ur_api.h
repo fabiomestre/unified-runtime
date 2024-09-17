@@ -8279,9 +8279,11 @@ typedef struct ur_exp_command_buffer_update_kernel_launch_desc_t {
     ur_structure_type_t stype;                                                 ///< [in] type of this structure, must be
                                                                                ///< ::UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC
     const void *pNext;                                                         ///< [in][optional] pointer to extension-specific structure
-    ur_kernel_handle_t hNewKernel;                                             ///< [in] The new kernel handle. If this value is equal to the current
-                                                                               ///< kernel handle associated
-                                                                               ///< with the command, then only the arguments to the kernel will be updated.
+    ur_kernel_handle_t hNewKernel;                                             ///< [in][optional] The new kernel handle. If this parameter is nullptr,
+                                                                               ///< the current kernel handle in `hCommand`
+                                                                               ///< will be used. If a kernel handle is passed, it must be a valid kernel
+                                                                               ///< alternative as defined in
+                                                                               ///< ::urCommandBufferAppendKernelLaunchExp.
     uint32_t numNewMemObjArgs;                                                 ///< [in] Length of pNewMemObjArgList.
     uint32_t numNewPointerArgs;                                                ///< [in] Length of pNewPointerArgList.
     uint32_t numNewValueArgs;                                                  ///< [in] Length of pNewValueArgList.
@@ -8293,13 +8295,25 @@ typedef struct ur_exp_command_buffer_update_kernel_launch_desc_t {
     const ur_exp_command_buffer_update_value_arg_desc_t *pNewValueArgList;     ///< [in][optional][range(0, numNewValueArgs)] An array describing the new
                                                                                ///< kernel value arguments for the command.
     size_t *pNewGlobalWorkOffset;                                              ///< [in][optional][range(0, newWorkDim)] Array of newWorkDim unsigned
-                                                                               ///< values that describe the offset used to calculate the global ID.
+                                                                               ///< values that describe the offset used
+                                                                               ///< to calculate the global ID. If this parameter is nullptr, the current
+                                                                               ///< global work offset will be used. This parameter is required if
+                                                                               ///< `newWorkDim` is different from the current work dimensions
+                                                                               ///< in the command.
     size_t *pNewGlobalWorkSize;                                                ///< [in][optional][range(0, newWorkDim)] Array of newWorkDim unsigned
-                                                                               ///< values that describe the number of global work-items.
+                                                                               ///< values that describe the number of
+                                                                               ///< global work-items. If this parameter is nullptr, the current global
+                                                                               ///< work size in `hCommand` will be used.
+                                                                               ///< This parameter is required if `newWorkDim` is different from the
+                                                                               ///< current work dimensions in the command.
     size_t *pNewLocalWorkSize;                                                 ///< [in][optional][range(0, newWorkDim)] Array of newWorkDim unsigned
-                                                                               ///< values that describe the number of work-items that make up a
-                                                                               ///< work-group. If pNewLocalWorkSize is nullptr, then the local work size
-                                                                               ///< is unchanged.
+                                                                               ///< values that describe the number of
+                                                                               ///< work-items that make up a work-group. If `pNewGlobalWorkSize` is set
+                                                                               ///< and `pNewLocalWorkSize` is nullptr,
+                                                                               ///< then the runtime implementation will choose the local work size. If
+                                                                               ///< `pNewGlobalWorkSize` is nullptr and
+                                                                               ///< `pNewLocalWorkSize` is nullptr, the current local work size in the
+                                                                               ///< command will be used.
 
 } ur_exp_command_buffer_update_kernel_launch_desc_t;
 
@@ -8442,8 +8456,8 @@ urCommandBufferAppendKernelLaunchExp(
                                                                   ///< implementation.
     uint32_t numKernelAlternatives,                               ///< [in] The number of kernel alternatives provided in
                                                                   ///< phKernelAlternatives.
-    ur_kernel_handle_t *phKernelAlternatives,                     ///< [in][optional][range(0, numKernelAlternatives)] List of kernels
-                                                                  ///< handles that might be used to update the kernel in this
+    ur_kernel_handle_t *phKernelAlternatives,                     ///< [in][optional][range(0, numKernelAlternatives)] List of kernel handles
+                                                                  ///< that might be used to update the kernel in this
                                                                   ///< command after the command-buffer is finalized. The default kernel
                                                                   ///< `hKernel` is implicitly marked as an alternative. It's
                                                                   ///< invalid to specify it as part of this list.
@@ -8954,7 +8968,6 @@ urCommandBufferReleaseCommandExp(
 ///     - ::UR_RESULT_ERROR_ADAPTER_SPECIFIC
 ///     - ::UR_RESULT_ERROR_INVALID_NULL_HANDLE
 ///         + `NULL == hCommand`
-///         + `NULL == pUpdateKernelLaunch->hNewKernel`
 ///     - ::UR_RESULT_ERROR_INVALID_NULL_POINTER
 ///         + `NULL == pUpdateKernelLaunch`
 ///     - ::UR_RESULT_ERROR_UNSUPPORTED_FEATURE
@@ -8962,18 +8975,62 @@ urCommandBufferReleaseCommandExp(
 ///     - ::UR_RESULT_ERROR_INVALID_OPERATION
 ///         + If ::ur_exp_command_buffer_desc_t::isUpdatable was not set to true on creation of the command buffer `hCommand` belongs to.
 ///         + If the command-buffer `hCommand` belongs to has not been finalized.
-///         + `pUpdateKernelLaunch->pNewLocalWorkSize != NULL && pUpdateKernelLaunch->pNewGlobalWorkSize == NULL`
-///         + If `pUpdateKernellaunch->hNewKernel` is equal to the currently active kernel in `hCommand`, and `pUpdateKernellaunch->newWorkDim` is different from the work-dim currently associated with `hCommand`.
 ///     - ::UR_RESULT_ERROR_INVALID_COMMAND_BUFFER_COMMAND_HANDLE_EXP
 ///     - ::UR_RESULT_ERROR_INVALID_MEM_OBJECT
 ///     - ::UR_RESULT_ERROR_INVALID_KERNEL_ARGUMENT_INDEX
 ///     - ::UR_RESULT_ERROR_INVALID_KERNEL_ARGUMENT_SIZE
 ///     - ::UR_RESULT_ERROR_INVALID_ENUMERATION
 ///     - ::UR_RESULT_ERROR_INVALID_WORK_DIMENSION
-///         + `pUpdateKernelLaunch->newWorkDim < 0 || pUpdateKernelLaunch->newWorkDim > 3`
+///         + `pUpdateKernelLaunch->newWorkDim < 1 || pUpdateKernelLaunch->newWorkDim > 3`
 ///     - ::UR_RESULT_ERROR_INVALID_WORK_GROUP_SIZE
 ///     - ::UR_RESULT_ERROR_INVALID_VALUE
-///         + If `pUpdateKernelLaunch->hNewKernel` was not passed to the `hKernel` or `phKernelAlternatives` parameters of ::urCommandBufferAppendKernelLaunchExp when this command was created.
+///         + *
+///         +
+///         + I
+///         + f
+///         + `
+///         + p
+///         + U
+///         + d
+///         + a
+///         + t
+///         + e
+///         + K
+///         + r
+///         + n
+///         + l
+///         + L
+///         + u
+///         + c
+///         + h
+///         + -
+///         + >
+///         + N
+///         + w
+///         + s
+///         + o
+///         + A
+///         + i
+///         + v
+///         +
+
+///         + m
+///         + $
+///         + x
+///         + C
+///         + B
+///         + E
+///         + .
+///         + "
+///         + W
+///         + k
+///         + D
+///         + ,
+///         + G
+///         + b
+///         + S
+///         + z
+///         + O
 ///     - ::UR_RESULT_ERROR_OUT_OF_HOST_MEMORY
 ///     - ::UR_RESULT_ERROR_OUT_OF_RESOURCES
 UR_APIEXPORT ur_result_t UR_APICALL

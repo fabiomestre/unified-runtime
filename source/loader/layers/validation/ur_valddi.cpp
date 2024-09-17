@@ -8062,8 +8062,8 @@ __urdlllocal ur_result_t UR_APICALL urCommandBufferAppendKernelLaunchExp(
         numKernelAlternatives, ///< [in] The number of kernel alternatives provided in
                                ///< phKernelAlternatives.
     ur_kernel_handle_t *
-        phKernelAlternatives, ///< [in][optional][range(0, numKernelAlternatives)] List of kernels
-    ///< handles that might be used to update the kernel in this
+        phKernelAlternatives, ///< [in][optional][range(0, numKernelAlternatives)] List of kernel handles
+    ///< that might be used to update the kernel in this
     ///< command after the command-buffer is finalized. The default kernel
     ///< `hKernel` is implicitly marked as an alternative. It's
     ///< invalid to specify it as part of this list.
@@ -8951,20 +8951,11 @@ __urdlllocal ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(
             return UR_RESULT_ERROR_INVALID_NULL_HANDLE;
         }
 
-        if (NULL == pUpdateKernelLaunch->hNewKernel) {
-            return UR_RESULT_ERROR_INVALID_NULL_HANDLE;
-        }
-
         if (NULL == pUpdateKernelLaunch) {
             return UR_RESULT_ERROR_INVALID_NULL_POINTER;
         }
 
-        if (pUpdateKernelLaunch->pNewLocalWorkSize != NULL &&
-            pUpdateKernelLaunch->pNewGlobalWorkSize == NULL) {
-            return UR_RESULT_ERROR_INVALID_OPERATION;
-        }
-
-        if (pUpdateKernelLaunch->newWorkDim < 0 ||
+        if (pUpdateKernelLaunch->newWorkDim < 1 ||
             pUpdateKernelLaunch->newWorkDim > 3) {
             return UR_RESULT_ERROR_INVALID_WORK_DIMENSION;
         }

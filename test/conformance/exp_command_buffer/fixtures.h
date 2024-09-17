@@ -34,7 +34,7 @@ static void checkCommandBufferSupport(ur_device_handle_t device) {
 
 static void checkCommandBufferUpdateSupport(
     ur_device_handle_t device,
-    ur_device_command_buffer_update_capability_flags_t requiredCapabilities) {
+    ur_device_command_buffer_update_capability_flags_t required_capabilities) {
     ur_device_command_buffer_update_capability_flags_t update_capability_flags;
     ASSERT_SUCCESS(urDeviceGetInfo(
         device, UR_DEVICE_INFO_COMMAND_BUFFER_UPDATE_CAPABILITIES_EXP,
@@ -42,8 +42,8 @@ static void checkCommandBufferUpdateSupport(
 
     if (!update_capability_flags) {
         GTEST_SKIP() << "Updating EXP command-buffers is not supported.";
-    } else if ((update_capability_flags & requiredCapabilities) !=
-               requiredCapabilities) {
+    } else if ((update_capability_flags & required_capabilities) !=
+               required_capabilities) {
         GTEST_SKIP() << "Some of the command-buffer update capabilities "
                         "required are not supported by the device.";
     }
@@ -116,13 +116,13 @@ struct urUpdatableCommandBufferExpTest : uur::urQueueTest {
 
         UUR_RETURN_ON_FATAL_FAILURE(checkCommandBufferSupport(device));
 
-        auto requiredCapabilities =
+        auto required_capabilities =
             UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_KERNEL_ARGUMENTS |
             UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_LOCAL_WORK_SIZE |
             UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_GLOBAL_WORK_SIZE |
             UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_GLOBAL_WORK_OFFSET;
         UUR_RETURN_ON_FATAL_FAILURE(
-            checkCommandBufferUpdateSupport(device, requiredCapabilities));
+            checkCommandBufferUpdateSupport(device, required_capabilities));
 
         // Create a command-buffer with update enabled.
         ur_exp_command_buffer_desc_t desc{
@@ -152,16 +152,16 @@ struct urUpdatableCommandBufferExpExecutionTest : uur::urKernelExecutionTest {
                                          sizeof(backend), &backend, nullptr));
 
         UUR_RETURN_ON_FATAL_FAILURE(checkCommandBufferSupport(device));
-        auto requiredCapabilities =
+        auto required_capabilities =
             UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_KERNEL_ARGUMENTS |
             UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_LOCAL_WORK_SIZE |
             UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_GLOBAL_WORK_SIZE |
             UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_GLOBAL_WORK_OFFSET;
         UUR_RETURN_ON_FATAL_FAILURE(
-            checkCommandBufferUpdateSupport(device, requiredCapabilities));
+            checkCommandBufferUpdateSupport(device, required_capabilities));
 
         UUR_RETURN_ON_FATAL_FAILURE(
-            checkCommandBufferUpdateSupport(device, requiredCapabilities));
+            checkCommandBufferUpdateSupport(device, required_capabilities));
 
         // Create a command-buffer with update enabled.
         ur_exp_command_buffer_desc_t desc{
@@ -227,6 +227,83 @@ struct urCommandBufferCommandExpTest
     ur_exp_command_buffer_command_handle_t command_handle = nullptr;
     ur_exp_command_buffer_command_handle_t command_handle_2 = nullptr;
 };
+
+struct TestKernel {
+
+    TestKernel(std::string Name, ur_platform_handle_t Platform,
+               ur_context_handle_t Context, ur_device_handle_t Device)
+        : Name(std::move(Name)), Platform(Platform), Context(Context),
+          Device(Device) {}
+
+    virtual ~TestKernel() = default;
+
+    virtual void buildKernel() {
+        std::shared_ptr<std::vector<char>> ILBinary;
+        std::vector<ur_program_metadata_t> Metadatas{};
+
+        ur_platform_backend_t Backend;
+        ASSERT_SUCCESS(urPlatformGetInfo(Platform, UR_PLATFORM_INFO_BACKEND,
+                                         sizeof(Backend), &Backend, nullptr));
+
+        ASSERT_NO_FATAL_FAILURE(
+            uur::KernelsEnvironment::instance->LoadSource(Name, ILBinary));
+
+        const ur_program_properties_t Properties = {
+            UR_STRUCTURE_TYPE_PROGRAM_PROPERTIES, nullptr,
+            static_cast<uint32_t>(Metadatas.size()),
+            Metadatas.empty() ? nullptr : Metadatas.data()};
+        ASSERT_SUCCESS(uur::KernelsEnvironment::instance->CreateProgram(
+            Platform, Context, Device, *ILBinary, &Properties, &Program));
+
+        auto KernelNames =
+            uur::KernelsEnvironment::instance->GetEntryPointNames(Name);
+        std::string KernelName = KernelNames[0];
+        ASSERT_FALSE(KernelName.empty());
+
+        ASSERT_SUCCESS(urProgramBuild(Context, Program, nullptr));
+        ASSERT_SUCCESS(urKernelCreate(Program, KernelName.data(), &Kernel));
+    }
+
+    virtual void setUpKernel() = 0;
+
+    virtual void destroyKernel() {
+        ASSERT_SUCCESS(urKernelRelease(Kernel));
+        ASSERT_SUCCESS(urProgramRelease(Program));
+    };
+
+    virtual void validate() = 0;
+
+    std::string Name;
+    ur_platform_handle_t Platform;
+    ur_context_handle_t Context;
+    ur_device_handle_t Device;
+    ur_program_handle_t Program;
+    ur_kernel_handle_t Kernel;
+};
+
+struct urCommandBufferMultipleKernelUpdateTest
+    : uur::command_buffer::urUpdatableCommandBufferExpTest {
+    virtual void SetUp() override {
+        UUR_RETURN_ON_FATAL_FAILURE(urUpdatableCommandBufferExpTest::SetUp());
+    }
+
+    virtual void TearDown() override {
+        for (auto &TestKernel : TestKernels) {
+            UUR_RETURN_ON_FATAL_FAILURE(TestKernel->destroyKernel());
+        }
+        UUR_RETURN_ON_FATAL_FAILURE(
+            urUpdatableCommandBufferExpTest::TearDown());
+    }
+
+    void setUpKernels() {
+        for (auto &TestKernel : TestKernels) {
+            UUR_RETURN_ON_FATAL_FAILURE(TestKernel->setUpKernel());
+        }
+    }
+
+    std::vector<std::shared_ptr<TestKernel>> TestKernels{};
+};
+
 } // namespace command_buffer
 } // namespace uur
 

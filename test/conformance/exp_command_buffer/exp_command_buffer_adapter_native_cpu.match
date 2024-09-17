@@ -13,7 +13,6 @@
 {{OPT}}BufferFillCommandTest.OverrideArgList/SYCL_NATIVE_CPU___SYCL_Native_CPU__{{.*}}
 {{OPT}}InvalidUpdateTest.NotFinalizedCommandBuffer/SYCL_NATIVE_CPU___SYCL_Native_CPU__{{.*}}
 {{OPT}}InvalidUpdateTest.NotUpdatableCommandBuffer/SYCL_NATIVE_CPU___SYCL_Native_CPU__{{.*}}
-{{OPT}}InvalidUpdateTest.GlobalLocalSizeMistach/SYCL_NATIVE_CPU___SYCL_Native_CPU__{{.*}}
 {{OPT}}InvalidUpdateTest.InvalidDimensions/SYCL_NATIVE_CPU___SYCL_Native_CPU__X_
 {{OPT}}USMFillCommandTest.UpdateParameters/SYCL_NATIVE_CPU___SYCL_Native_CPU__{{.*}}
 {{OPT}}USMFillCommandTest.UpdateBeforeEnqueue/SYCL_NATIVE_CPU___SYCL_Native_CPU__{{.*}}

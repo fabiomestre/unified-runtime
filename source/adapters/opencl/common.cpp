@@ -120,6 +120,8 @@ cl_int getDeviceCommandBufferUpdateCapabilities(
     cl_device_id Dev,
     ur_device_command_buffer_update_capability_flags_t &UpdateCapabilities) {
 
+  UpdateCapabilities = 0;
+
   size_t ExtSize = 0;
   CL_RETURN_ON_FAILURE(
       clGetDeviceInfo(Dev, CL_DEVICE_EXTENSIONS, 0, nullptr, &ExtSize));
@@ -131,7 +133,6 @@ cl_int getDeviceCommandBufferUpdateCapabilities(
   std::string SupportedExtensions(ExtStr.c_str());
   if (ExtStr.find("cl_khr_command_buffer_mutable_dispatch") ==
       std::string::npos) {
-    UpdateCapabilities = 0;
     return CL_SUCCESS;
   }
 
@@ -141,11 +142,9 @@ cl_int getDeviceCommandBufferUpdateCapabilities(
       sizeof(MutableCapabilities), &MutableCapabilities, nullptr));
 
   if (!(MutableCapabilities & CL_MUTABLE_DISPATCH_EXEC_INFO_KHR)) {
-    UpdateCapabilities = 0;
     return CL_SUCCESS;
   }
 
-  UpdateCapabilities = 0;
   if (MutableCapabilities & CL_MUTABLE_DISPATCH_ARGUMENTS_KHR) {
     UpdateCapabilities |=
         UR_DEVICE_COMMAND_BUFFER_UPDATE_CAPABILITY_FLAG_KERNEL_ARGUMENTS;

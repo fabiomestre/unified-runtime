@@ -877,22 +877,19 @@ validateCommandDesc(ur_exp_command_buffer_command_handle_t Command,
 
   auto CommandBuffer = Command->CommandBuffer;
 
-  // Update requires command-buffer to be finalized
-  if (!CommandBuffer->CudaGraphExec) {
-    return UR_RESULT_ERROR_INVALID_OPERATION;
-  }
-
-  // Update requires command-buffer to be created with update enabled
-  if (!CommandBuffer->IsUpdatable) {
+  // Update requires the command-buffer to be finalized and updatable.
+  if (!CommandBuffer->CudaGraphExec || !CommandBuffer->IsUpdatable) {
     return UR_RESULT_ERROR_INVALID_OPERATION;
   }
 
   if (UpdateCommandDesc->newWorkDim != Command->WorkDim &&
-      Command->Kernel == UpdateCommandDesc->hNewKernel) {
-    return UR_RESULT_ERROR_INVALID_OPERATION;
+      (!UpdateCommandDesc->pNewGlobalWorkOffset ||
+       !UpdateCommandDesc->pNewGlobalWorkSize)) {
+    return UR_RESULT_ERROR_INVALID_VALUE;
   }
 
-  if (!Command->ValidKernelHandles.count(UpdateCommandDesc->hNewKernel)) {
+  if (UpdateCommandDesc->hNewKernel &&
+      !Command->ValidKernelHandles.count(UpdateCommandDesc->hNewKernel)) {
     return UR_RESULT_ERROR_INVALID_VALUE;
   }
   return UR_RESULT_SUCCESS;
@@ -987,7 +984,9 @@ updateCommand(ur_exp_command_buffer_command_handle_t Command,
               const ur_exp_command_buffer_update_kernel_launch_desc_t
                   *UpdateCommandDesc) {
 
-  Command->Kernel = UpdateCommandDesc->hNewKernel;
+  if (UpdateCommandDesc->hNewKernel) {
+    Command->Kernel = UpdateCommandDesc->hNewKernel;
+  }
 
   if (UpdateCommandDesc->newWorkDim) {
     Command->WorkDim = UpdateCommandDesc->newWorkDim;
@@ -999,6 +998,9 @@ updateCommand(ur_exp_command_buffer_command_handle_t Command,
 
   if (UpdateCommandDesc->pNewGlobalWorkSize) {
     Command->setGlobalSize(UpdateCommandDesc->pNewGlobalWorkSize);
+    if (!UpdateCommandDesc->pNewLocalWorkSize) {
+      Command->setNullLocalSize();
+    }
   }
 
   if (UpdateCommandDesc->pNewLocalWorkSize) {

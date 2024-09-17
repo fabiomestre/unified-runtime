@@ -7551,8 +7551,8 @@ ur_result_t UR_APICALL urCommandBufferAppendKernelLaunchExp(
         numKernelAlternatives, ///< [in] The number of kernel alternatives provided in
                                ///< phKernelAlternatives.
     ur_kernel_handle_t *
-        phKernelAlternatives, ///< [in][optional][range(0, numKernelAlternatives)] List of kernels
-    ///< handles that might be used to update the kernel in this
+        phKernelAlternatives, ///< [in][optional][range(0, numKernelAlternatives)] List of kernel handles
+    ///< that might be used to update the kernel in this
     ///< command after the command-buffer is finalized. The default kernel
     ///< `hKernel` is implicitly marked as an alternative. It's
     ///< invalid to specify it as part of this list.
@@ -8308,7 +8308,6 @@ ur_result_t UR_APICALL urCommandBufferReleaseCommandExp(
 ///     - ::UR_RESULT_ERROR_ADAPTER_SPECIFIC
 ///     - ::UR_RESULT_ERROR_INVALID_NULL_HANDLE
 ///         + `NULL == hCommand`
-///         + `NULL == pUpdateKernelLaunch->hNewKernel`
 ///     - ::UR_RESULT_ERROR_INVALID_NULL_POINTER
 ///         + `NULL == pUpdateKernelLaunch`
 ///     - ::UR_RESULT_ERROR_UNSUPPORTED_FEATURE
@@ -8316,18 +8315,62 @@ ur_result_t UR_APICALL urCommandBufferReleaseCommandExp(
 ///     - ::UR_RESULT_ERROR_INVALID_OPERATION
 ///         + If ::ur_exp_command_buffer_desc_t::isUpdatable was not set to true on creation of the command buffer `hCommand` belongs to.
 ///         + If the command-buffer `hCommand` belongs to has not been finalized.
-///         + `pUpdateKernelLaunch->pNewLocalWorkSize != NULL && pUpdateKernelLaunch->pNewGlobalWorkSize == NULL`
-///         + If `pUpdateKernellaunch->hNewKernel` is equal to the currently active kernel in `hCommand`, and `pUpdateKernellaunch->newWorkDim` is different from the work-dim currently associated with `hCommand`.
 ///     - ::UR_RESULT_ERROR_INVALID_COMMAND_BUFFER_COMMAND_HANDLE_EXP
 ///     - ::UR_RESULT_ERROR_INVALID_MEM_OBJECT
 ///     - ::UR_RESULT_ERROR_INVALID_KERNEL_ARGUMENT_INDEX
 ///     - ::UR_RESULT_ERROR_INVALID_KERNEL_ARGUMENT_SIZE
 ///     - ::UR_RESULT_ERROR_INVALID_ENUMERATION
 ///     - ::UR_RESULT_ERROR_INVALID_WORK_DIMENSION
-///         + `pUpdateKernelLaunch->newWorkDim < 0 || pUpdateKernelLaunch->newWorkDim > 3`
+///         + `pUpdateKernelLaunch->newWorkDim < 1 || pUpdateKernelLaunch->newWorkDim > 3`
 ///     - ::UR_RESULT_ERROR_INVALID_WORK_GROUP_SIZE
 ///     - ::UR_RESULT_ERROR_INVALID_VALUE
-///         + If `pUpdateKernelLaunch->hNewKernel` was not passed to the `hKernel` or `phKernelAlternatives` parameters of ::urCommandBufferAppendKernelLaunchExp when this command was created.
+///         + *
+///         +
+///         + I
+///         + f
+///         + `
+///         + p
+///         + U
+///         + d
+///         + a
+///         + t
+///         + e
+///         + K
+///         + r
+///         + n
+///         + l
+///         + L
+///         + u
+///         + c
+///         + h
+///         + -
+///         + >
+///         + N
+///         + w
+///         + s
+///         + o
+///         + A
+///         + i
+///         + v
+///         +
+
+///         + m
+///         + $
+///         + x
+///         + C
+///         + B
+///         + E
+///         + .
+///         + "
+///         + W
+///         + k
+///         + D
+///         + ,
+///         + G
+///         + b
+///         + S
+///         + z
+///         + O
 ///     - ::UR_RESULT_ERROR_OUT_OF_HOST_MEMORY
 ///     - ::UR_RESULT_ERROR_OUT_OF_RESOURCES
 ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(

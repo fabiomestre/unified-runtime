@@ -365,7 +365,7 @@ TEST_P(NDRangeUpdateTest, UserToImplDefinedLocalSize) {
                                              nullptr, nullptr));
     ASSERT_SUCCESS(urQueueFinish(queue));
 
-    // Verify that the kernel ran successfully and the global size and the
-    // local size is unchanged
-    Validate(new_global_size, local_size, new_global_offset);
+    // Verify that the kernel ran successfully and the global size is the
+    // expected. Cannot check the local size since it's implementation defined.
+    Validate(new_global_size, std::nullopt, new_global_offset);
 }

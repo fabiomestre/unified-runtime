@@ -5,62 +5,10 @@
 
 #include "../fixtures.h"
 #include "uur/raii.h"
+#include <array>
 #include <cstring>
 
-struct TestKernel {
-
-    TestKernel(std::string Name, ur_platform_handle_t Platform,
-               ur_context_handle_t Context, ur_device_handle_t Device)
-        : Name(std::move(Name)), Platform(Platform), Context(Context),
-          Device(Device) {}
-
-    virtual ~TestKernel() = default;
-
-    virtual void buildKernel() {
-        std::shared_ptr<std::vector<char>> ILBinary;
-        std::vector<ur_program_metadata_t> Metadatas{};
-
-        ur_platform_backend_t Backend;
-        ASSERT_SUCCESS(urPlatformGetInfo(Platform, UR_PLATFORM_INFO_BACKEND,
-                                         sizeof(Backend), &Backend, nullptr));
-
-        ASSERT_NO_FATAL_FAILURE(
-            uur::KernelsEnvironment::instance->LoadSource(Name, ILBinary));
-
-        const ur_program_properties_t Properties = {
-            UR_STRUCTURE_TYPE_PROGRAM_PROPERTIES, nullptr,
-            static_cast<uint32_t>(Metadatas.size()),
-            Metadatas.empty() ? nullptr : Metadatas.data()};
-        ASSERT_SUCCESS(uur::KernelsEnvironment::instance->CreateProgram(
-            Platform, Context, Device, *ILBinary, &Properties, &Program));
-
-        auto KernelNames =
-            uur::KernelsEnvironment::instance->GetEntryPointNames(Name);
-        std::string KernelName = KernelNames[0];
-        ASSERT_FALSE(KernelName.empty());
-
-        ASSERT_SUCCESS(urProgramBuild(Context, Program, nullptr));
-        ASSERT_SUCCESS(urKernelCreate(Program, KernelName.data(), &Kernel));
-    }
-
-    virtual void setUpKernel() = 0;
-
-    virtual void destroyKernel() {
-        ASSERT_SUCCESS(urKernelRelease(Kernel));
-        ASSERT_SUCCESS(urProgramRelease(Program));
-    };
-
-    virtual void validate() = 0;
-
-    std::string Name;
-    ur_platform_handle_t Platform;
-    ur_context_handle_t Context;
-    ur_device_handle_t Device;
-    ur_program_handle_t Program;
-    ur_kernel_handle_t Kernel;
-};
-
-struct TestSaxpyKernel : public TestKernel {
+struct TestSaxpyKernel : public uur::command_buffer::TestKernel {
 
     TestSaxpyKernel(ur_platform_handle_t Platform, ur_context_handle_t Context,
                     ur_device_handle_t Device)
@@ -179,7 +127,7 @@ struct TestSaxpyKernel : public TestKernel {
     std::array<void *, 3> Allocations = {nullptr, nullptr, nullptr};
 };
 
-struct TestFill2DKernel : public TestKernel {
+struct TestFill2DKernel : public uur::command_buffer::TestKernel {
 
     TestFill2DKernel(ur_platform_handle_t Platform, ur_context_handle_t Context,
                      ur_device_handle_t Device)
@@ -193,6 +141,13 @@ struct TestFill2DKernel : public TestKernel {
         const size_t allocation_size = sizeof(uint32_t) * SizeX * SizeY;
         ASSERT_SUCCESS(urUSMSharedAlloc(Context, Device, nullptr, nullptr,
                                         allocation_size, &Memory));
+
+        // Index 0 is the output
+        ASSERT_SUCCESS(urKernelSetArgPointer(Kernel, 0, nullptr, Memory));
+        // Index 1 is the fill value
+        ASSERT_SUCCESS(
+            urKernelSetArgValue(Kernel, 1, sizeof(Val), nullptr, &Val));
+
         ASSERT_NE(Memory, nullptr);
 
         std::vector<uint8_t> pattern(allocation_size);
@@ -262,10 +217,11 @@ struct TestFill2DKernel : public TestKernel {
 };
 
 struct urCommandBufferKernelHandleUpdateTest
-    : uur::command_buffer::urUpdatableCommandBufferExpTest {
+    : uur::command_buffer::urCommandBufferMultipleKernelUpdateTest {
     virtual void SetUp() override {
-
-        UUR_RETURN_ON_FATAL_FAILURE(urUpdatableCommandBufferExpTest::SetUp());
+        UUR_RETURN_ON_FATAL_FAILURE(
+            uur::command_buffer::urCommandBufferMultipleKernelUpdateTest::
+                SetUp());
 
         UUR_RETURN_ON_FATAL_FAILURE(
             uur::command_buffer::checkCommandBufferUpdateSupport(
@@ -286,20 +242,15 @@ struct urCommandBufferKernelHandleUpdateTest
         TestKernels.push_back(SaxpyKernel);
         TestKernels.push_back(FillUSM2DKernel);
 
-        for (auto &TestKernel : TestKernels) {
-            UUR_RETURN_ON_FATAL_FAILURE(TestKernel->setUpKernel());
-        }
+        this->setUpKernels();
     }
 
     virtual void TearDown() override {
-        for (auto &TestKernel : TestKernels) {
-            UUR_RETURN_ON_FATAL_FAILURE(TestKernel->destroyKernel());
-        }
         UUR_RETURN_ON_FATAL_FAILURE(
-            urUpdatableCommandBufferExpTest::TearDown());
+            uur::command_buffer::urCommandBufferMultipleKernelUpdateTest::
+                TearDown());
     }
 
-    std::vector<std::shared_ptr<TestKernel>> TestKernels{};
     std::shared_ptr<TestSaxpyKernel> SaxpyKernel;
     std::shared_ptr<TestFill2DKernel> FillUSM2DKernel;
 };
@@ -442,4 +393,77 @@ TEST_P(urCommandBufferKernelHandleUpdateTest,
                          &(SaxpyKernel->GlobalSize), &(SaxpyKernel->LocalSize),
                          KernelAlternatives.size(), KernelAlternatives.data(),
                          0, nullptr, nullptr, &CommandHandle));
+}
+
+using urCommandBufferValidUpdateParametersTest =
+    urCommandBufferKernelHandleUpdateTest;
+UUR_INSTANTIATE_DEVICE_TEST_SUITE_P(urCommandBufferValidUpdateParametersTest);
+
+// Test that updating the dimensions of a kernel command does not cause an error.
+TEST_P(urCommandBufferValidUpdateParametersTest,
+       UpdateDimensionsWithoutUpdatingKernel) {
+
+    uur::raii::CommandBufferCommand CommandHandle;
+    ASSERT_SUCCESS(urCommandBufferAppendKernelLaunchExp(
+        updatable_cmd_buf_handle, FillUSM2DKernel->Kernel,
+        FillUSM2DKernel->NDimensions, FillUSM2DKernel->GlobalOffset.data(),
+        FillUSM2DKernel->GlobalSize.data(), FillUSM2DKernel->LocalSize.data(),
+        0, nullptr, 0, nullptr, nullptr, CommandHandle.ptr()));
+    ASSERT_NE(CommandHandle, nullptr);
+
+    ASSERT_SUCCESS(urCommandBufferFinalizeExp(updatable_cmd_buf_handle));
+    ASSERT_SUCCESS(urCommandBufferEnqueueExp(updatable_cmd_buf_handle, queue, 0,
+                                             nullptr, nullptr));
+    ASSERT_SUCCESS(urQueueFinish(queue));
+
+    ASSERT_NO_FATAL_FAILURE(FillUSM2DKernel->validate());
+
+    size_t newGlobalWorkSize =
+        FillUSM2DKernel->GlobalSize[0] * FillUSM2DKernel->GlobalSize[1];
+    size_t newGlobalWorkOffset = 0;
+
+    // Since the fill2D kernel relies on the globalID, it will still work if we
+    // change the work dimensions to 1.
+    FillUSM2DKernel->UpdateDesc.newWorkDim = 1;
+    FillUSM2DKernel->UpdateDesc.pNewGlobalWorkSize = &newGlobalWorkSize;
+    FillUSM2DKernel->UpdateDesc.pNewGlobalWorkOffset = &newGlobalWorkOffset;
+    ASSERT_SUCCESS(urCommandBufferUpdateKernelLaunchExp(
+        CommandHandle, &FillUSM2DKernel->UpdateDesc));
+    ASSERT_SUCCESS(urCommandBufferEnqueueExp(updatable_cmd_buf_handle, queue, 0,
+                                             nullptr, nullptr));
+    ASSERT_SUCCESS(urQueueFinish(queue));
+
+    ASSERT_NO_FATAL_FAILURE(FillUSM2DKernel->validate());
+}
+
+// Test that updating only the local work size does not cause an error.
+TEST_P(urCommandBufferValidUpdateParametersTest, UpdateOnlyLocalWorkSize) {
+
+    std::vector<ur_kernel_handle_t> KernelAlternatives = {
+        FillUSM2DKernel->Kernel};
+
+    uur::raii::CommandBufferCommand CommandHandle;
+    ASSERT_SUCCESS(urCommandBufferAppendKernelLaunchExp(
+        updatable_cmd_buf_handle, SaxpyKernel->Kernel, SaxpyKernel->NDimensions,
+        &(SaxpyKernel->GlobalOffset), &(SaxpyKernel->GlobalSize),
+        &(SaxpyKernel->LocalSize), KernelAlternatives.size(),
+        KernelAlternatives.data(), 0, nullptr, nullptr, CommandHandle.ptr()));
+    ASSERT_NE(CommandHandle, nullptr);
+
+    ASSERT_SUCCESS(urCommandBufferFinalizeExp(updatable_cmd_buf_handle));
+
+    ASSERT_SUCCESS(urCommandBufferEnqueueExp(updatable_cmd_buf_handle, queue, 0,
+                                             nullptr, nullptr));
+
+    SaxpyKernel->UpdateDesc.pNewGlobalWorkOffset = nullptr;
+    SaxpyKernel->UpdateDesc.pNewGlobalWorkSize = nullptr;
+    size_t newLocalSize = SaxpyKernel->LocalSize * 4;
+    SaxpyKernel->UpdateDesc.pNewLocalWorkSize = &newLocalSize;
+    ASSERT_SUCCESS(urCommandBufferUpdateKernelLaunchExp(
+        CommandHandle, &SaxpyKernel->UpdateDesc));
+    ASSERT_SUCCESS(urCommandBufferEnqueueExp(updatable_cmd_buf_handle, queue, 0,
+                                             nullptr, nullptr));
+    ASSERT_SUCCESS(urQueueFinish(queue));
+
+    ASSERT_NO_FATAL_FAILURE(SaxpyKernel->validate());
 }

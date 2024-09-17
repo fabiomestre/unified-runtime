@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 #include "../fixtures.h"
+#include <array>
 #include <cstring>
 
 // Negative tests that correct error codes are thrown on invalid update usage.
@@ -168,59 +169,53 @@ TEST_P(InvalidUpdateTest, NotUpdatableCommandBuffer) {
     }
 }
 
-// Test setting `pNewLocalWorkSize` to a non-NULL value and `pNewGlobalWorkSize`
-// to NULL gives the correct error.
-TEST_P(InvalidUpdateTest, GlobalLocalSizeMistach) {
-    ASSERT_SUCCESS(urCommandBufferFinalizeExp(updatable_cmd_buf_handle));
-    finalized = true;
-
-    size_t new_local_size = 16;
-    ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
-        UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
-        nullptr,                                                        // pNext
-        kernel,          // hNewKernel
-        0,               // numNewMemObjArgs
-        0,               // numNewPointerArgs
-        0,               // numNewValueArgs
-        n_dimensions,    // newWorkDim
-        nullptr,         // pNewMemObjArgList
-        nullptr,         // pNewPointerArgList
-        nullptr,         // pNewValueArgList
-        nullptr,         // pNewGlobalWorkOffset
-        nullptr,         // pNewGlobalWorkSize
-        &new_local_size, // pNewLocalWorkSize
-    };
-
-    // Update command local size but not global size
-    ur_result_t result =
-        urCommandBufferUpdateKernelLaunchExp(command_handle, &update_desc);
-    ASSERT_EQ(UR_RESULT_ERROR_INVALID_OPERATION, result);
-}
-
-// If the kernel handle is not being updated, then it's invalid to change
-// the number of dimensions.
+// If the number of dimensions change, then the global work size and offset
+// also need to be updated.
 TEST_P(InvalidUpdateTest, InvalidDimensions) {
     ASSERT_SUCCESS(urCommandBufferFinalizeExp(updatable_cmd_buf_handle));
     finalized = true;
 
-    size_t new_global_size = 64;
+    uint32_t new_dimensions = 2;
+    std::array<size_t, 2> new_global_offset{0, 0};
+    std::array<size_t, 2> new_global_size{64, 64};
+
     ur_exp_command_buffer_update_kernel_launch_desc_t update_desc = {
         UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
         nullptr,                                                        // pNext
-        kernel,           // hNewKernel
-        0,                // numNewMemObjArgs
-        0,                // numNewPointerArgs
-        0,                // numNewValueArgs
-        n_dimensions + 1, // newWorkDim
-        nullptr,          // pNewMemObjArgList
-        nullptr,          // pNewPointerArgList
-        nullptr,          // pNewValueArgList
-        nullptr,          // pNewGlobalWorkOffset
-        &new_global_size, // pNewGlobalWorkSize
-        nullptr,          // pNewLocalWorkSize
+        kernel,                 // hNewKernel
+        0,                      // numNewMemObjArgs
+        0,                      // numNewPointerArgs
+        0,                      // numNewValueArgs
+        new_dimensions,         // newWorkDim
+        nullptr,                // pNewMemObjArgList
+        nullptr,                // pNewPointerArgList
+        nullptr,                // pNewValueArgList
+        nullptr,                // pNewGlobalWorkOffset
+        new_global_size.data(), // pNewGlobalWorkSize
+        nullptr,                // pNewLocalWorkSize
     };
 
-    ur_result_t result =
-        urCommandBufferUpdateKernelLaunchExp(command_handle, &update_desc);
-    ASSERT_EQ(UR_RESULT_ERROR_INVALID_OPERATION, result);
+    ASSERT_EQ(
+        UR_RESULT_ERROR_INVALID_VALUE,
+        urCommandBufferUpdateKernelLaunchExp(command_handle, &update_desc));
+
+    update_desc = {
+        UR_STRUCTURE_TYPE_EXP_COMMAND_BUFFER_UPDATE_KERNEL_LAUNCH_DESC, // stype
+        nullptr,                                                        // pNext
+        kernel,                   // hNewKernel
+        0,                        // numNewMemObjArgs
+        0,                        // numNewPointerArgs
+        0,                        // numNewValueArgs
+        new_dimensions,           // newWorkDim
+        nullptr,                  // pNewMemObjArgList
+        nullptr,                  // pNewPointerArgList
+        nullptr,                  // pNewValueArgList
+        new_global_offset.data(), // pNewGlobalWorkOffset
+        nullptr,                  // pNewGlobalWorkSize
+        nullptr,                  // pNewLocalWorkSize
+    };
+
+    ASSERT_EQ(
+        UR_RESULT_ERROR_INVALID_VALUE,
+        urCommandBufferUpdateKernelLaunchExp(command_handle, &update_desc));
 }

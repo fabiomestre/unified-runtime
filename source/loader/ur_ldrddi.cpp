@@ -7112,8 +7112,8 @@ __urdlllocal ur_result_t UR_APICALL urCommandBufferAppendKernelLaunchExp(
         numKernelAlternatives, ///< [in] The number of kernel alternatives provided in
                                ///< phKernelAlternatives.
     ur_kernel_handle_t *
-        phKernelAlternatives, ///< [in][optional][range(0, numKernelAlternatives)] List of kernels
-    ///< handles that might be used to update the kernel in this
+        phKernelAlternatives, ///< [in][optional][range(0, numKernelAlternatives)] List of kernel handles
+    ///< that might be used to update the kernel in this
     ///< command after the command-buffer is finalized. The default kernel
     ///< `hKernel` is implicitly marked as an alternative. It's
     ///< invalid to specify it as part of this list.
@@ -7892,10 +7892,12 @@ __urdlllocal ur_result_t UR_APICALL urCommandBufferUpdateKernelLaunchExp(
     // Deal with any struct parameters that have handle members we need to convert.
     auto pUpdateKernelLaunchLocal = *pUpdateKernelLaunch;
 
-    pUpdateKernelLaunchLocal.hNewKernel =
-        reinterpret_cast<ur_kernel_object_t *>(
-            pUpdateKernelLaunchLocal.hNewKernel)
-            ->handle;
+    if (pUpdateKernelLaunchLocal.hNewKernel) {
+        pUpdateKernelLaunchLocal.hNewKernel =
+            reinterpret_cast<ur_kernel_object_t *>(
+                pUpdateKernelLaunchLocal.hNewKernel)
+                ->handle;
+    }
 
     std::vector<ur_exp_command_buffer_update_memobj_arg_desc_t>
         pUpdateKernelLaunchpNewMemObjArgList;

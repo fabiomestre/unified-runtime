@@ -74,6 +74,10 @@ struct ur_exp_command_buffer_command_handle_t_ {
     }
   }
 
+  void setNullLocalSize() noexcept {
+    std::memset(LocalWorkSize, 0, sizeof(size_t) * 3);
+  }
+
   bool isNullLocalSize() const noexcept {
     const size_t Zeros[3] = {0, 0, 0};
     return 0 == std::memcmp(LocalWorkSize, Zeros, sizeof(LocalWorkSize));

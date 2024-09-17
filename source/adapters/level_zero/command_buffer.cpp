@@ -1325,10 +1325,10 @@ ur_result_t validateCommandDesc(
     return UR_RESULT_ERROR_UNSUPPORTED_FEATURE;
   }
 
-  // Error if work dim changes
-  if (CommandDesc->hNewKernel == Command->Kernel &&
-      CommandDesc->newWorkDim != Command->WorkDim) {
-    return UR_RESULT_ERROR_INVALID_OPERATION;
+  if (CommandDesc->newWorkDim != Command->WorkDim &&
+      (!CommandDesc->pNewGlobalWorkOffset ||
+       !CommandDesc->pNewGlobalWorkSize)) {
+    return UR_RESULT_ERROR_INVALID_VALUE;
   }
 
   // Check if new global offset is provided.
