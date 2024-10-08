@@ -22,6 +22,10 @@ https://github.com/intel/llvm/blob/sycl/sycl/doc/design/CommandGraph.md#level-ze
 
 namespace {
 
+bool checkImmediateAppendSupport(ur_device_handle_t Device) {
+  return Device->isPVC() && Device->ImmCommandListUsed;
+}
+
 // Gets a C pointer from a vector. If the vector is empty returns nullptr
 // instead. This is different from the behaviour of the data() member function
 // of the vector class which might not return nullptr when the vector is empty.
@@ -346,6 +350,20 @@ void ur_exp_command_buffer_handle_t_::cleanupCommandBufferResources() {
     urEventReleaseInternal(AllResetEvent);
   }
 
+  if (CopyFinishedEvent) {
+    CleanupCompletedEvent(CopyFinishedEvent, false);
+    urEventReleaseInternal(CopyFinishedEvent);
+  }
+
+  if (ExecutionFinishedEvent) {
+    CleanupCompletedEvent(ExecutionFinishedEvent, false);
+    urEventReleaseInternal(ExecutionFinishedEvent);
+  }
+
+  if (CurrentSubmissionEvent) {
+    urEventReleaseInternal(CurrentSubmissionEvent);
+  }
+
   // Release events added to the command_buffer
   for (auto &Sync : SyncPoints) {
     auto &Event = Sync.second;
@@ -646,7 +664,7 @@ UR_APIEXPORT ur_result_t UR_APICALL
 urCommandBufferCreateExp(ur_context_handle_t Context, ur_device_handle_t Device,
                          const ur_exp_command_buffer_desc_t *CommandBufferDesc,
                          ur_exp_command_buffer_handle_t *CommandBuffer) {
-  if (Device->isPVC() && Device->ImmCommandListUsed) {
+  if (checkImmediateAppendSupport(Device)) {
     commandBufferCreateNew(Context, Device, CommandBufferDesc, CommandBuffer);
   } else {
     commandBufferCreateOld(Context, Device, CommandBufferDesc, CommandBuffer);
@@ -785,8 +803,7 @@ commandBufferFinalizeOld(ur_exp_command_buffer_handle_t CommandBuffer) {
 
 UR_APIEXPORT ur_result_t UR_APICALL
 urCommandBufferFinalizeExp(ur_exp_command_buffer_handle_t CommandBuffer) {
-  if (CommandBuffer->Device->isPVC() &&
-      CommandBuffer->Device->ImmCommandListUsed) {
+  if (checkImmediateAppendSupport(CommandBuffer->Device)) {
     commandBufferFinalizeNew(CommandBuffer);
   } else {
     commandBufferFinalizeOld(CommandBuffer);
@@ -1486,10 +1503,12 @@ ur_result_t submitComputeEngineCmdLists(
               NumEventsInWaitList, UrZeEventList.ZeEventList));
 
   // The events needs to be retained since it will be used internally as well
-  // be returned to the user.
-  if (!InternalEvent) {
-    UR_CALL(ur::level_zero::urEventRetain(*Event));
+  // be returned to the user. If not retained, it can be released when the
+  // ZeImmediateListHelper is reset.
+  if (CommandBuffer->CurrentSubmissionEvent) {
+    UR_CALL(urEventReleaseInternal(CommandBuffer->CurrentSubmissionEvent));
   }
+  (*Event)->RefCount.increment();
   CommandBuffer->CurrentSubmissionEvent = *Event;
 
   UR_CALL(Queue->executeCommandList(ZeImmediateListHelper, false, false));
@@ -1631,8 +1650,7 @@ UR_APIEXPORT ur_result_t UR_APICALL urCommandBufferEnqueueExp(
     ur_exp_command_buffer_handle_t CommandBuffer, ur_queue_handle_t UrQueue,
     uint32_t NumEventsInWaitList, const ur_event_handle_t *EventWaitList,
     ur_event_handle_t *Event) {
-  if (CommandBuffer->Device->isPVC() &&
-      CommandBuffer->Device->ImmCommandListUsed) {
+  if (checkImmediateAppendSupport(CommandBuffer->Device)) {
     commandBufferEnqueueNew(CommandBuffer, UrQueue, NumEventsInWaitList,
                             EventWaitList, Event);
   } else {
@@ -1971,17 +1989,22 @@ ur_result_t urCommandBufferUpdateKernelLaunchExp(
 
   UR_CALL(validateCommandDesc(Command, CommandDesc));
 
-  // // We must synchronize mutable command list execution before mutating.
-  // // FIXME Is this needed for the new path?
-  // if (ze_fence_handle_t &ZeFence = Command->CommandBuffer->ZeActiveFence) {
-  //   ZE2UR_CALL(zeFenceHostSynchronize, (ZeFence, UINT64_MAX));
-  // }
-  ur_event_handle_t& CurrentSubmissionEvent = Command->CommandBuffer->CurrentSubmissionEvent;
-  if (CurrentSubmissionEvent) {
-    ZE2UR_CALL(zeEventHostSynchronize,
-               (CurrentSubmissionEvent->ZeEvent, UINT64_MAX));
-    UR_CALL(ur::level_zero::urEventRelease(CurrentSubmissionEvent));
-    CurrentSubmissionEvent = nullptr;
+  bool UsingNewPath = checkImmediateAppendSupport(Command->CommandBuffer->Device);
+
+  if (UsingNewPath) {
+    ur_event_handle_t &CurrentSubmissionEvent = Command->CommandBuffer->CurrentSubmissionEvent;
+    if (CurrentSubmissionEvent) {
+      ZE2UR_CALL(zeEventHostSynchronize,
+                 (CurrentSubmissionEvent->ZeEvent, UINT64_MAX));
+      UR_CALL(urEventReleaseInternal(CurrentSubmissionEvent));
+      CurrentSubmissionEvent = nullptr;
+    }
+  }
+
+  if (!UsingNewPath) {
+    if (ze_fence_handle_t &ZeFence = Command->CommandBuffer->ZeActiveFence) {
+      ZE2UR_CALL(zeFenceHostSynchronize, (ZeFence, UINT64_MAX));
+    }
   }
 
   UR_CALL(updateKernelCommand(Command, CommandDesc));
