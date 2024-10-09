@@ -31,8 +31,10 @@ struct ur_exp_command_buffer_handle_t_ : public _ur_object {
       ze_command_list_handle_t CommandList,
       ze_command_list_handle_t CommandListTranslated,
       ze_command_list_handle_t CommandListResetEvents,
-      ze_command_list_handle_t CopyCommandList, ur_event_handle_t SignalEvent,
-      ur_event_handle_t WaitEvent, ur_event_handle_t AllResetEvent,
+      ze_command_list_handle_t CopyCommandList,
+      ur_event_handle_t SignalEvent, ur_event_handle_t WaitEvent,
+      ur_event_handle_t AllResetEvent, ur_event_handle_t CopyFinishedEvent,
+      ur_event_handle_t ComputeFinishedEvent,
       const ur_exp_command_buffer_desc_t *Desc, const bool IsInOrderCmdList);
 
   void registerSyncPoint(ur_exp_command_buffer_sync_point_t SyncPoint,
@@ -90,19 +92,29 @@ struct ur_exp_command_buffer_handle_t_ : public _ur_object {
   // Event which a command-buffer waits on until the main command-list event
   // have been reset.
   ur_event_handle_t AllResetEvent = nullptr;
+
+  ur_event_handle_t CopyFinishedEvent = nullptr;
+  // Event that is signalled after the compute engine command-list finishes
+  // executing.
+  ur_event_handle_t ExecutionFinishedEvent = nullptr;
+  // Event that is signaled after the current submission of this command-buffer
+  // finishes executing (i.e. after zeCommandListImmediateAppendCommandListsExp
+  // finishes executing).
+  ur_event_handle_t CurrentSubmissionEvent = nullptr;
   // This flag is must be set to false if at least one copy command has been
   // added to `ZeCopyCommandList`
   bool MCopyCommandListEmpty = true;
   // Level Zero fences for each queue the command-buffer has been enqueued to.
   // These should be destroyed when the command-buffer is released.
   std::unordered_map<ze_command_queue_handle_t, ze_fence_handle_t> ZeFencesMap;
+
   // The Level Zero fence from the most recent enqueue of the command-buffer.
   // Must be an element in ZeFencesMap, so is not required to be destroyed
   // itself.
   ze_fence_handle_t ZeActiveFence;
   // Map of sync_points to ur_events
   std::unordered_map<ur_exp_command_buffer_sync_point_t, ur_event_handle_t>
-      SyncPoints;
+  SyncPoints;
   // Next sync_point value (may need to consider ways to reuse values if 32-bits
   // is not enough)
   ur_exp_command_buffer_sync_point_t NextSyncPoint;
