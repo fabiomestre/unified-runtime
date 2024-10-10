@@ -754,7 +754,7 @@ commandBufferFinalizeNew(ur_exp_command_buffer_handle_t CommandBuffer) {
 //                CommandBuffer->ExecutionFinishedEvent->ZeEvent, 0, nullptr));
 
     // Wait on all the events to be signalled before starting the profiling
-    ZE2UR_CALL(zeCommandListAppendBarrier,
+    ZE2UR_CALL(zeCommandListAppendBarrier, //FIXME Maybe signal from immediateexp entrypoint
                (CommandBuffer->ZeComputeCommandList,
                    CommandBuffer->ExecutionFinishedEvent->ZeEvent,
                    CommandBuffer->ZeEventsList.size(),
@@ -1445,54 +1445,103 @@ ur_result_t createUserEvent(ur_exp_command_buffer_handle_t CommandBuffer,
   return UR_RESULT_SUCCESS;
 }
 
-ur_result_t createProfilingCmdList(
-    ur_queue_handle_t Queue,
-    ur_exp_command_buffer_handle_t CommandBuffer, uint32_t NumEventsInWaitList,
-    const ur_event_handle_t *EventWaitList, ur_event_handle_t &UserEvent,
-    ze_command_list_handle_t &ProfilingCommandList) {
+//ur_result_t createProfilingCmdList(
+//    ur_queue_handle_t Queue,
+//    ur_exp_command_buffer_handle_t CommandBuffer, uint32_t NumEventsInWaitList,
+//    const ur_event_handle_t *EventWaitList, ur_event_handle_t &UserEvent,
+//    ze_command_list_handle_t &ProfilingCommandList) {
+//
+//  ProfilingCommandList = CommandBuffer->ZeProfilingCommandList;
+////  ur_command_list_ptr_t ProfilingCommandListPtr{};
+////  UR_CALL(Queue->Context->getAvailableCommandList(
+////      Queue, ProfilingCommandListPtr, false, NumEventsInWaitList, EventWaitList,
+////      false));
+////  UR_CALL(Queue->Context->getAvailableCommandList(
+////      Queue, ProfilingCommandListPtr, false, 0, nullptr,
+////      false));
+////  ProfilingCommandList = ProfilingCommandListPtr->first;
+//
+//  // Multiple submissions of a command buffer implies that we need to save
+//  // the event timestamps before resubmiting the command buffer. We
+//  // therefore copy the these timestamps in a dedicated USM memory section
+//  // before completing the command buffer execution, and then attach this
+//  // memory to the event returned to users to allow to allow the profiling
+//  // engine to recover these timestamps.
+//  command_buffer_profiling_t *Profiling = new command_buffer_profiling_t();
+//
+//  Profiling->NumEvents = CommandBuffer->ZeEventsList.size();
+//  Profiling->Timestamps =
+//      new ze_kernel_timestamp_result_t[Profiling->NumEvents];
+//
+//  ZE2UR_CALL(zeCommandListAppendBarrier,
+//             (ProfilingCommandList, nullptr, 1,  &(CommandBuffer->ExecutionFinishedEvent->ZeEvent)));
+//
+////  ZE2UR_CALL(zeCommandListAppendQueryKernelTimestamps,
+////             (ProfilingCommandList, CommandBuffer->ZeEventsList.size(),
+////              CommandBuffer->ZeEventsList.data(), (void *)Profiling->Timestamps,
+////              0, nullptr, 1, &(CommandBuffer->ExecutionFinishedEvent->ZeEvent)));
+//
+//  ZE2UR_CALL(zeCommandListAppendQueryKernelTimestamps,
+//             (ProfilingCommandList, CommandBuffer->ZeEventsList.size(),
+//              CommandBuffer->ZeEventsList.data(), (void *)Profiling->Timestamps,
+//              0, nullptr, 0,nullptr));
+//
+//  ZE2UR_CALL(zeCommandListAppendBarrier,
+//             (ProfilingCommandList, nullptr, 0,  nullptr));
+//
+//  UserEvent->CommandData = static_cast<void *>(Profiling);
+//
+//  return UR_RESULT_SUCCESS;
+//}
 
-  ProfilingCommandList = CommandBuffer->ZeProfilingCommandList;
+//ur_result_t createProfilingCmdList(
+//    ur_queue_handle_t Queue,
+//    ur_exp_command_buffer_handle_t CommandBuffer, uint32_t NumEventsInWaitList,
+//    const ur_event_handle_t *EventWaitList, ur_event_handle_t &UserEvent,
+//    ze_command_list_handle_t &ProfilingCommandList) {
+//
+//  ProfilingCommandList = CommandBuffer->ZeProfilingCommandList;
 //  ur_command_list_ptr_t ProfilingCommandListPtr{};
-//  UR_CALL(Queue->Context->getAvailableCommandList(
-//      Queue, ProfilingCommandListPtr, false, NumEventsInWaitList, EventWaitList,
-//      false));
+////  UR_CALL(Queue->Context->getAvailableCommandList(
+////      Queue, ProfilingCommandListPtr, false, NumEventsInWaitList, EventWaitList,
+////      false));
 //  UR_CALL(Queue->Context->getAvailableCommandList(
 //      Queue, ProfilingCommandListPtr, false, 0, nullptr,
 //      false));
 //  ProfilingCommandList = ProfilingCommandListPtr->first;
-
-  // Multiple submissions of a command buffer implies that we need to save
-  // the event timestamps before resubmiting the command buffer. We
-  // therefore copy the these timestamps in a dedicated USM memory section
-  // before completing the command buffer execution, and then attach this
-  // memory to the event returned to users to allow to allow the profiling
-  // engine to recover these timestamps.
-  command_buffer_profiling_t *Profiling = new command_buffer_profiling_t();
-
-  Profiling->NumEvents = CommandBuffer->ZeEventsList.size();
-  Profiling->Timestamps =
-      new ze_kernel_timestamp_result_t[Profiling->NumEvents];
-
-  ZE2UR_CALL(zeCommandListAppendBarrier,
-             (ProfilingCommandList, nullptr, 1,  &(CommandBuffer->ExecutionFinishedEvent->ZeEvent)));
-
+//
+//  // Multiple submissions of a command buffer implies that we need to save
+//  // the event timestamps before resubmiting the command buffer. We
+//  // therefore copy the these timestamps in a dedicated USM memory section
+//  // before completing the command buffer execution, and then attach this
+//  // memory to the event returned to users to allow to allow the profiling
+//  // engine to recover these timestamps.
+//  command_buffer_profiling_t *Profiling = new command_buffer_profiling_t();
+//
+//  Profiling->NumEvents = CommandBuffer->ZeEventsList.size();
+//  Profiling->Timestamps =
+//      new ze_kernel_timestamp_result_t[Profiling->NumEvents];
+//
+//  ZE2UR_CALL(zeCommandListAppendBarrier,
+//             (ProfilingCommandList, nullptr, 1,  &(CommandBuffer->ExecutionFinishedEvent->ZeEvent)));
+//
+////  ZE2UR_CALL(zeCommandListAppendQueryKernelTimestamps,
+////             (ProfilingCommandList, CommandBuffer->ZeEventsList.size(),
+////              CommandBuffer->ZeEventsList.data(), (void *)Profiling->Timestamps,
+////              0, nullptr, 1, &(CommandBuffer->ExecutionFinishedEvent->ZeEvent)));
+//
 //  ZE2UR_CALL(zeCommandListAppendQueryKernelTimestamps,
 //             (ProfilingCommandList, CommandBuffer->ZeEventsList.size(),
-//              CommandBuffer->ZeEventsList.data(), (void *)Profiling->Timestamps,
-//              0, nullptr, 1, &(CommandBuffer->ExecutionFinishedEvent->ZeEvent)));
-
-  ZE2UR_CALL(zeCommandListAppendQueryKernelTimestamps,
-             (ProfilingCommandList, CommandBuffer->ZeEventsList.size(),
-              CommandBuffer->ZeEventsList.data(), (void *)Profiling->Timestamps,
-              0, nullptr, 0,nullptr));
-
-  ZE2UR_CALL(zeCommandListAppendBarrier,
-             (ProfilingCommandList, nullptr, 0,  nullptr));
-
-  UserEvent->CommandData = static_cast<void *>(Profiling);
-
-  return UR_RESULT_SUCCESS;
-}
+//                 CommandBuffer->ZeEventsList.data(), (void *)Profiling->Timestamps,
+//                 0, nullptr, 0,nullptr));
+//
+//  ZE2UR_CALL(zeCommandListAppendBarrier,
+//             (ProfilingCommandList, nullptr, 0,  nullptr));
+//
+//  UserEvent->CommandData = static_cast<void *>(Profiling);
+//
+//  return UR_RESULT_SUCCESS;
+//}
 
 /**
  * TODO
@@ -1523,8 +1572,8 @@ ur_result_t submitComputeEngineCmdLists(
 
   ur_command_list_ptr_t ZeImmediateListHelper{};
   UR_CALL(Queue->Context->getAvailableCommandList(Queue, ZeImmediateListHelper,
-                                                  false, NumEventsInWaitList,
-                                                  EventWaitList, false));
+                                                  false, 0,
+                                                  nullptr, false));
   assert(ZeImmediateListHelper->second.IsImmediate);
 
   const bool IsInternal = (UserEvent == nullptr);
@@ -1544,38 +1593,38 @@ ur_result_t submitComputeEngineCmdLists(
   (*Event)->WaitList = UrZeEventList;
   const auto &WaitList = (*Event)->WaitList;
 
-  if ((Queue->Properties & UR_QUEUE_FLAG_PROFILING_ENABLE) &&
-      (!CommandBuffer->IsInOrderCmdList) &&
-      (CommandBuffer->IsProfilingEnabled) && UserEvent) {
-    ze_command_list_handle_t ProfilingCommandList;
-    UR_CALL(createProfilingCmdList(Queue, CommandBuffer, NumEventsInWaitList,
-                                   EventWaitList, *UserEvent,
-                                   ProfilingCommandList));
-    ComputeCommandLists.push_back(ProfilingCommandList);
+  if (!((Queue->Properties & UR_QUEUE_FLAG_PROFILING_ENABLE) &&
+        (!CommandBuffer->IsInOrderCmdList) &&
+        (CommandBuffer->IsProfilingEnabled) && UserEvent)) {
+    ZE2UR_CALL(zeCommandListImmediateAppendCommandListsExp,
+               (ZeImmediateListHelper->first, ComputeCommandLists.size(),
+                   ComputeCommandLists.data(), (*Event)->ZeEvent,
+                   WaitList.Length, WaitList.ZeEventList));
+  } else {
+    ZE2UR_CALL(zeCommandListImmediateAppendCommandListsExp,
+               (ZeImmediateListHelper->first, ComputeCommandLists.size(),
+                   ComputeCommandLists.data(), nullptr,
+                   WaitList.Length, WaitList.ZeEventList));
+
+    // Multiple submissions of a command buffer implies that we need to save
+    // the event timestamps before resubmiting the command buffer. We
+    // therefore copy the these timestamps in a dedicated USM memory section
+    // before completing the command buffer execution, and then attach this
+    // memory to the event returned to users to allow to allow the profiling
+    // engine to recover these timestamps.
+    command_buffer_profiling_t *Profiling = new command_buffer_profiling_t();
+
+    Profiling->NumEvents = CommandBuffer->ZeEventsList.size();
+    Profiling->Timestamps =
+        new ze_kernel_timestamp_result_t[Profiling->NumEvents];
+
+    ZE2UR_CALL(zeCommandListAppendQueryKernelTimestamps,
+               (ZeImmediateListHelper->first, CommandBuffer->ZeEventsList.size(),
+                   CommandBuffer->ZeEventsList.data(), (void *) Profiling->Timestamps,
+                   0, (*Event)->ZeEvent, 1, &(CommandBuffer->ExecutionFinishedEvent->ZeEvent)));
+
+    (*Event)->CommandData = static_cast<void *>(Profiling);
   }
-
-//  ZE2UR_CALL(zeCommandListImmediateAppendCommandListsExp,
-//             (ZeImmediateListHelper->first, ComputeCommandLists.size(),
-//              ComputeCommandLists.data(), (*Event)->ZeEvent,
-//              NumEventsInWaitList, UrZeEventList.ZeEventList));
-
-  ZE2UR_CALL(zeCommandListImmediateAppendCommandListsExp,
-             (ZeImmediateListHelper->first, ComputeCommandLists.size(),
-              ComputeCommandLists.data(), (*Event)->ZeEvent,
-                 WaitList.Length, WaitList.ZeEventList));
-
-
-/// WORKS
-//  ZE2UR_CALL(zeCommandListImmediateAppendCommandListsExp,
-//             (ZeImmediateListHelper->first, ComputeCommandLists.size(),
-//                 ComputeCommandLists.data(), (*Event)->ZeEvent,
-//                 0, nullptr));
-
-
-//  ZE2UR_CALL(zeCommandListImmediateAppendCommandListsExp,
-//             (ZeImmediateListHelper->first, ComputeCommandLists.size(),
-//                 ComputeCommandLists.data(), (*Event)->ZeEvent,
-//                 NumEventsInWaitList ? 1 : 0, UrZeEventList.ZeEventList));
 
   // The events needs to be retained since it will be used internally as well
   // be returned to the user. If not retained, it can be released when the
