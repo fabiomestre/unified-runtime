@@ -31,6 +31,7 @@ struct ur_exp_command_buffer_handle_t_ : public _ur_object {
       ze_command_list_handle_t CommandList,
       ze_command_list_handle_t CommandListTranslated,
       ze_command_list_handle_t CommandListResetEvents,
+      ze_command_list_handle_t ZeProfilingCommandList,
       ze_command_list_handle_t CopyCommandList,
       ur_event_handle_t SignalEvent, ur_event_handle_t WaitEvent,
       ur_event_handle_t AllResetEvent, ur_event_handle_t CopyFinishedEvent,
@@ -81,6 +82,8 @@ struct ur_exp_command_buffer_handle_t_ : public _ur_object {
   ze_command_list_handle_t ZeComputeCommandListTranslated;
   // Level Zero command list handle
   ze_command_list_handle_t ZeCommandListResetEvents;
+  // Profiling command list handle
+  ze_command_list_handle_t ZeProfilingCommandList;
   // Level Zero Copy command list handle
   ze_command_list_handle_t ZeCopyCommandList;
   // Event which will signals the most recent execution of the command-buffer
