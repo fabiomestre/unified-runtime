@@ -35,7 +35,7 @@ struct ur_exp_command_buffer_handle_t_ : public _ur_object {
       ze_command_list_handle_t CopyCommandList,
       ur_event_handle_t SignalEvent, ur_event_handle_t WaitEvent,
       ur_event_handle_t AllResetEvent, ur_event_handle_t CopyFinishedEvent,
-      ur_event_handle_t ComputeFinishedEvent,
+      ur_event_handle_t ComputeFinishedEvent, ur_event_handle_t ExecutionFinishedEvent,
       const ur_exp_command_buffer_desc_t *Desc, const bool IsInOrderCmdList);
 
   void registerSyncPoint(ur_exp_command_buffer_sync_point_t SyncPoint,
@@ -99,6 +99,7 @@ struct ur_exp_command_buffer_handle_t_ : public _ur_object {
   ur_event_handle_t CopyFinishedEvent = nullptr;
   // Event that is signalled after the compute engine command-list finishes
   // executing.
+  ur_event_handle_t ComputeFinishedEvent = nullptr;
   ur_event_handle_t ExecutionFinishedEvent = nullptr;
   // Event that is signaled after the current submission of this command-buffer
   // finishes executing (i.e. after zeCommandListImmediateAppendCommandListsExp

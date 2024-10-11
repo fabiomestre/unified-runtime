@@ -294,7 +294,7 @@ ur_exp_command_buffer_handle_t_::ur_exp_command_buffer_handle_t_(
     ze_command_list_handle_t CopyCommandList,
     ur_event_handle_t SignalEvent, ur_event_handle_t WaitEvent,
     ur_event_handle_t AllResetEvent, ur_event_handle_t CopyFinishedEvent,
-    ur_event_handle_t ComputeFinishedEvent,
+    ur_event_handle_t ComputeFinishedEvent, ur_event_handle_t ExecutionFinishedEvent,
     const ur_exp_command_buffer_desc_t *Desc, const bool IsInOrderCmdList)
     : Context(Context), Device(Device), ZeComputeCommandList(CommandList),
       ZeComputeCommandListTranslated(CommandListTranslated),
@@ -305,7 +305,7 @@ ur_exp_command_buffer_handle_t_::ur_exp_command_buffer_handle_t_(
       SignalEvent(SignalEvent), WaitEvent(WaitEvent),
       AllResetEvent(AllResetEvent), CopyFinishedEvent(CopyFinishedEvent),
 
-      ExecutionFinishedEvent(ComputeFinishedEvent), ZeFencesMap(),
+      ComputeFinishedEvent(ComputeFinishedEvent), ExecutionFinishedEvent(ExecutionFinishedEvent), ZeFencesMap(),
       ZeActiveFence(nullptr), SyncPoints(), NextSyncPoint(0),
       IsUpdatable(Desc ? Desc->isUpdatable : false),
       IsProfilingEnabled(Desc ? Desc->enableProfiling : false),
@@ -358,6 +358,11 @@ void ur_exp_command_buffer_handle_t_::cleanupCommandBufferResources() {
   if (CopyFinishedEvent) {
     CleanupCompletedEvent(CopyFinishedEvent, false);
     urEventReleaseInternal(CopyFinishedEvent);
+  }
+
+  if (ComputeFinishedEvent) {
+    CleanupCompletedEvent(ComputeFinishedEvent, false);
+    urEventReleaseInternal(ComputeFinishedEvent);
   }
 
   if (ExecutionFinishedEvent) {
@@ -543,6 +548,7 @@ commandBufferCreateNew(ur_context_handle_t Context, ur_device_handle_t Device,
   ur_event_handle_t AllResetEvent;
   ur_event_handle_t CopyFinishedEvent;
   ur_event_handle_t ComputeFinishedEvent;
+  ur_event_handle_t ExecutionFinishedEvent;
   // TODO This 3 events can probably be made into counter-based events when the
   // env variable is set
   UR_CALL(EventCreate(Context, nullptr, false, false, &AllResetEvent, false,
@@ -552,6 +558,8 @@ commandBufferCreateNew(ur_context_handle_t Context, ur_device_handle_t Device,
   UR_CALL(EventCreate(Context, nullptr, false, false, &CopyFinishedEvent, false,
                       !EnableProfiling));
   UR_CALL(EventCreate(Context, nullptr, false, false, &ComputeFinishedEvent,
+                      false, !EnableProfiling));
+  UR_CALL(EventCreate(Context, nullptr, false, false, &ExecutionFinishedEvent,
                       false, !EnableProfiling));
 
   ze_command_list_handle_t ZeComputeCommandList = nullptr;
@@ -590,7 +598,7 @@ commandBufferCreateNew(ur_context_handle_t Context, ur_device_handle_t Device,
     *CommandBuffer = new ur_exp_command_buffer_handle_t_(
         Context, Device, ZeComputeCommandList, ZeComputeCommandListTranslated,
         ZeCommandListResetEvents, ZeProfilingCommandList, ZeCopyCommandList, nullptr, nullptr,
-        AllResetEvent, CopyFinishedEvent, ComputeFinishedEvent,
+        AllResetEvent, CopyFinishedEvent, ComputeFinishedEvent, ExecutionFinishedEvent,
         CommandBufferDesc, IsInOrder);
   } catch (const std::bad_alloc &) {
     return UR_RESULT_ERROR_OUT_OF_HOST_MEMORY;
@@ -662,7 +670,7 @@ commandBufferCreateOld(ur_context_handle_t Context, ur_device_handle_t Device,
     *CommandBuffer = new ur_exp_command_buffer_handle_t_(
         Context, Device, ZeComputeCommandList, ZeComputeCommandListTranslated,
         ZeCommandListResetEvents, nullptr, ZeCopyCommandList, SignalEvent, WaitEvent,
-        AllResetEvent, nullptr, nullptr, CommandBufferDesc, IsInOrder);
+        AllResetEvent, nullptr, nullptr, nullptr, CommandBufferDesc, IsInOrder);
   } catch (const std::bad_alloc &) {
     return UR_RESULT_ERROR_OUT_OF_HOST_MEMORY;
   } catch (...) {
@@ -707,6 +715,10 @@ commandBufferFinalizeNew(ur_exp_command_buffer_handle_t CommandBuffer) {
   // It is not allowed to append to command list from multiple threads.
   std::scoped_lock<ur_shared_mutex> Guard(CommandBuffer->Mutex);
 
+  ZE2UR_CALL(zeCommandListAppendBarrier,
+             (CommandBuffer->ZeCommandListResetEvents, nullptr, 1,
+                 &CommandBuffer->ExecutionFinishedEvent->ZeEvent));
+
   // TODO Maybe the ResetCommandList could be run at the end to pre-emptively
   // prepare the events for the next execution of the graph. In that case, we
   // need to add a barrier to wait on ExecutionFinishedEvent at the start of the
@@ -742,7 +754,7 @@ commandBufferFinalizeNew(ur_exp_command_buffer_handle_t CommandBuffer) {
   if (CommandBuffer->IsProfilingEnabled) {
     ZE2UR_CALL(zeCommandListAppendEventReset,
                (CommandBuffer->ZeCommandListResetEvents,
-                CommandBuffer->ExecutionFinishedEvent->ZeEvent));
+                CommandBuffer->ComputeFinishedEvent->ZeEvent));
 //FIXME was signalEvent wrong?
 //    ZE2UR_CALL(zeCommandListAppendSignalEvent,
 //               (CommandBuffer->ZeComputeCommandList,
@@ -756,10 +768,14 @@ commandBufferFinalizeNew(ur_exp_command_buffer_handle_t CommandBuffer) {
     // Wait on all the events to be signalled before starting the profiling
     ZE2UR_CALL(zeCommandListAppendBarrier, //FIXME Maybe signal from immediateexp entrypoint
                (CommandBuffer->ZeComputeCommandList,
-                   CommandBuffer->ExecutionFinishedEvent->ZeEvent,
+                   CommandBuffer->ComputeFinishedEvent->ZeEvent,
                    CommandBuffer->ZeEventsList.size(),
                    CommandBuffer->ZeEventsList.data()));
   }
+
+  ZE2UR_CALL(zeCommandListAppendEventReset,
+             (CommandBuffer->ZeCommandListResetEvents,
+                 CommandBuffer->ExecutionFinishedEvent->ZeEvent));
 
 //FIXME was signalEvent wrong?
 //  ZE2UR_CALL(zeCommandListAppendSignalEvent,
@@ -789,6 +805,9 @@ commandBufferFinalizeNew(ur_exp_command_buffer_handle_t CommandBuffer) {
   if (CommandBuffer->IsProfilingEnabled) {
     ZE2UR_CALL(zeCommandListClose, (CommandBuffer->ZeProfilingCommandList));
   }
+
+  // All the events are reset by default. So signal the all reset event for the first run of the command buffer
+  ZE2UR_CALL(zeEventHostSignal, (CommandBuffer->AllResetEvent->ZeEvent));
 
   CommandBuffer->IsFinalized = true;
 
@@ -1563,8 +1582,9 @@ ur_result_t submitComputeEngineCmdLists(
     ur_exp_command_buffer_handle_t CommandBuffer, uint32_t NumEventsInWaitList,
     const ur_event_handle_t *EventWaitList, ur_event_handle_t *UserEvent) {
 
+
   std::vector<ze_command_list_handle_t> ComputeCommandLists{
-      CommandBuffer->ZeCommandListResetEvents,
+      /*CommandBuffer->ZeCommandListResetEvents,*/
       CommandBuffer->ZeComputeCommandList};
 
   ze_command_queue_handle_t ZeCommandQueue;
@@ -1621,10 +1641,20 @@ ur_result_t submitComputeEngineCmdLists(
     ZE2UR_CALL(zeCommandListAppendQueryKernelTimestamps,
                (ZeImmediateListHelper->first, CommandBuffer->ZeEventsList.size(),
                    CommandBuffer->ZeEventsList.data(), (void *) Profiling->Timestamps,
-                   0, (*Event)->ZeEvent, 1, &(CommandBuffer->ExecutionFinishedEvent->ZeEvent)));
+                   0, (*Event)->ZeEvent, 1, &(CommandBuffer->ComputeFinishedEvent->ZeEvent)));
 
     (*Event)->CommandData = static_cast<void *>(Profiling);
   }
+
+  // Signal the execution finished event so that the reset event command list can start running
+  ZE2UR_CALL(zeCommandListAppendBarrier,
+             (ZeImmediateListHelper->first, CommandBuffer->ExecutionFinishedEvent->ZeEvent, 0,
+                 nullptr));
+
+  ZE2UR_CALL(zeCommandListImmediateAppendCommandListsExp,
+             (ZeImmediateListHelper->first, 1,
+                 &CommandBuffer->ZeCommandListResetEvents, nullptr,
+                 0, nullptr));
 
   // The events needs to be retained since it will be used internally as well
   // be returned to the user. If not retained, it can be released when the
@@ -1704,6 +1734,12 @@ commandBufferEnqueueNew(ur_exp_command_buffer_handle_t CommandBuffer,
 
   UR_CALL(submitComputeEngineCmdLists(Queue, CommandBuffer, NumEventsInWaitList,
                                       EventWaitList, Event));
+
+//  ze_command_queue_handle_t ZeCommandQueue;
+//  getZeCommandQueue(Queue, false, ZeCommandQueue);
+//  ZE2UR_CALL(
+//      zeCommandQueueExecuteCommandLists,
+//      (ZeCommandQueue, 1, &CommandBuffer->ZeCommandListResetEvents, nullptr));
 
   return UR_RESULT_SUCCESS;
 }
