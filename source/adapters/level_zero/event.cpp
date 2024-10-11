@@ -1316,7 +1316,7 @@ ur_result_t EventCreate(ur_context_handle_t Context, ur_queue_handle_t Queue,
   } catch (...) {
     return UR_RESULT_ERROR_UNKNOWN;
   }
-//  UR_CALL(ur::level_zero::urEventRetain(*RetEvent)); //FIXME
+
   (*RetEvent)->CounterBasedEventsEnabled = CounterBasedEventEnabled;
   if (HostVisible)
     (*RetEvent)->HostVisibleEvent =
